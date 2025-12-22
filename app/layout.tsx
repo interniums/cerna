@@ -11,6 +11,8 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
+  // Avoid preloading a font that we don't use immediately (removes Chrome warning).
+  preload: false,
 })
 
 export const metadata: Metadata = {

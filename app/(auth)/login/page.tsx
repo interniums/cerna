@@ -10,11 +10,11 @@ export const metadata: Metadata = {
 }
 
 type LoginPageProps = {
-  searchParams?: { checkEmail?: string }
+  searchParams?: Promise<{ checkEmail?: string }>
 }
 
-export default function LoginPage({ searchParams }: LoginPageProps) {
-  const params = searchParams ?? {}
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const params = (await searchParams) ?? {}
   const shouldShowCheckEmail = params.checkEmail === '1'
 
   return (

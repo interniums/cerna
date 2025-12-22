@@ -5,13 +5,14 @@ import { ResourceList } from '@/features/resources/components/resource-list'
 import { UndoBanner } from '@/features/resources/components/undo-banner'
 
 type PinnedPageProps = {
-  searchParams?: { undo?: string }
+  searchParams?: Promise<{ undo?: string }>
 }
 
 export default async function PinnedPage({ searchParams }: PinnedPageProps) {
   const user = await requireServerUser()
   const resources = await listResources({ userId: user.id, scope: 'pinned' })
-  const undoId = searchParams?.undo
+  const params = (await searchParams) ?? {}
+  const undoId = params.undo
 
   return (
     <div className="grid gap-4">

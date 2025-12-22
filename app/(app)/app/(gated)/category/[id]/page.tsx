@@ -6,13 +6,13 @@ import { ResourceList } from '@/features/resources/components/resource-list'
 import { UndoBanner } from '@/features/resources/components/undo-banner'
 
 type CategoryPageProps = {
-  params: { id: string }
-  searchParams?: { undo?: string }
+  params: Promise<{ id: string }>
+  searchParams?: Promise<{ undo?: string }>
 }
 
 export default async function CategoryPage({ params, searchParams }: CategoryPageProps) {
   const user = await requireServerUser()
-  const categoryId = params.id
+  const { id: categoryId } = await params
 
   const [categories, resources] = await Promise.all([
     listCategories(user.id),
@@ -21,7 +21,8 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
 
   const categoryName = categories.find((c) => c.id === categoryId)?.name ?? 'Category'
 
-  const undoId = searchParams?.undo
+  const sp = (await searchParams) ?? {}
+  const undoId = sp.undo
 
   return (
     <div className="grid gap-4">

@@ -5,11 +5,12 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
 type SubscribePageProps = {
-  searchParams?: { interval?: 'monthly' | 'yearly' }
+  searchParams?: Promise<{ interval?: 'monthly' | 'yearly' }>
 }
 
-export default function SubscribePage({ searchParams }: SubscribePageProps) {
-  const selected = searchParams?.interval === 'yearly' ? 'yearly' : 'monthly'
+export default async function SubscribePage({ searchParams }: SubscribePageProps) {
+  const params = (await searchParams) ?? {}
+  const selected = params.interval === 'yearly' ? 'yearly' : 'monthly'
 
   return (
     <div className="grid gap-4">

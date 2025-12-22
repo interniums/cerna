@@ -6,12 +6,13 @@ import { searchResources } from '@/lib/search/resources-search'
 import { requireServerUser } from '@/lib/supabase/auth'
 
 type SearchPageProps = {
-  searchParams?: { q?: string }
+  searchParams?: Promise<{ q?: string }>
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const user = await requireServerUser()
-  const q = (searchParams?.q ?? '').trim()
+  const params = (await searchParams) ?? {}
+  const q = (params.q ?? '').trim()
 
   const results = q ? await searchResources({ userId: user.id, query: q }) : []
 

@@ -72,6 +72,13 @@ async function syncSubscriptionById(subscriptionId: string) {
   })
 }
 
+function getInvoiceSubscriptionId(invoice: Stripe.Invoice) {
+  const details = invoice.parent?.subscription_details
+  const sub = details?.subscription
+  if (!sub) return null
+  return typeof sub === 'string' ? sub : sub.id
+}
+
 export async function POST(request: Request) {
   const { webhookSecret } = getStripeEnv()
   const signature = getStripeSignature(request)
@@ -109,6 +116,15 @@ export async function POST(request: Request) {
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription
         await syncSubscriptionById(subscription.id)
+        break
+      }
+      case 'invoice.payment_succeeded':
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object as Stripe.Invoice
+        const subscriptionId = getInvoiceSubscriptionId(invoice)
+        if (subscriptionId) {
+          await syncSubscriptionById(subscriptionId)
+        }
         break
       }
       default:

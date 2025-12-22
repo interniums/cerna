@@ -7,14 +7,15 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 
 type DeletePageProps = {
-  params: { id: string }
-  searchParams?: { returnTo?: string }
+  params: Promise<{ id: string }>
+  searchParams?: Promise<{ returnTo?: string }>
 }
 
 export default async function DeleteResourcePage({ params, searchParams }: DeletePageProps) {
   const user = await requireServerUser()
-  const { id } = params
-  const { returnTo } = searchParams ?? {}
+  const { id } = await params
+  const sp = (await searchParams) ?? {}
+  const { returnTo } = sp
 
   const resource = await getResourceById({ userId: user.id, resourceId: id })
 
