@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState, useEffect, useMemo, useRef, useState } from 'react'
+import { Link2 } from 'lucide-react'
 
 import { createResourceAction, type ResourceActionState } from '@/features/resources/actions'
 import { FormSubmitButton } from '@/components/forms/form-submit-button'
@@ -30,7 +31,7 @@ export function NewResourceDialog({ defaultCategoryId }: NewResourceDialogProps)
   return (
     <Dialog onOpenChange={(open) => (!open ? setResetKey((k) => k + 1) : null)}>
       <DialogTrigger asChild>
-        <Button size="sm">Save link</Button>
+        <Button size="sm">Add resource</Button>
       </DialogTrigger>
       <NewResourceDialogBody key={resetKey} hiddenInputs={hiddenInputs} />
     </Dialog>
@@ -123,7 +124,7 @@ function NewResourceDialogBody({ hiddenInputs }: { hiddenInputs: React.ReactNode
   return (
     <DialogContent>
       <DialogHeader>
-        <DialogTitle>Save link</DialogTitle>
+        <DialogTitle>Add resource</DialogTitle>
       </DialogHeader>
       <form action={formAction} className="grid gap-4">
         {hiddenInputs}
@@ -170,7 +171,7 @@ function NewResourceDialogBody({ hiddenInputs }: { hiddenInputs: React.ReactNode
         ) : null}
 
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <FormSubmitButton idleText="Save" pendingText="Saving…" />
+          <FormSubmitButton idleText="Add resource" pendingText="Adding…" />
           <DialogClose asChild>
             <Button type="button" variant="secondary">
               Close
@@ -194,7 +195,7 @@ function UrlPreview({
   if (!url || state === 'idle') return null
 
   return (
-    <Card className="p-4">
+    <Card className="w-full min-w-0 overflow-hidden p-4">
       {state === 'loading' ? (
         <div className="grid gap-2">
           <Skeleton className="h-4 w-2/3" />
@@ -204,26 +205,26 @@ function UrlPreview({
       ) : state === 'error' ? (
         <p className="text-sm text-muted-foreground">Couldn’t load a preview. You can still save.</p>
       ) : (
-        <div className="flex gap-3">
+        <div className="flex min-w-0 gap-3">
           {preview?.faviconUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={preview.faviconUrl}
               alt=""
-              className="mt-0.5 size-5 rounded-sm"
+              className="mt-0.5 size-5 shrink-0 rounded-sm"
               referrerPolicy="no-referrer"
             />
           ) : (
-            <div className="mt-0.5 size-5 rounded-sm bg-muted" />
+            <div className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-sm bg-muted text-muted-foreground">
+              <Link2 aria-hidden="true" className="size-3.5" />
+            </div>
           )}
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium">
-              {preview?.title?.trim() ? preview.title : 'Preview'}
-            </p>
+          <div className="min-w-0 overflow-hidden">
+            <p className="truncate text-sm font-medium">{preview?.title?.trim() ? preview.title : 'Preview'}</p>
             {preview?.description ? (
-              <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{preview.description}</p>
+              <p className="mt-1 line-clamp-2 wrap-break-word text-sm text-muted-foreground">{preview.description}</p>
             ) : (
-              <p className="mt-1 truncate text-sm text-muted-foreground">{url}</p>
+              <p className="mt-1 line-clamp-2 break-all text-sm text-muted-foreground">{url}</p>
             )}
           </div>
         </div>

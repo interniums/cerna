@@ -2,6 +2,7 @@ import { listCategories } from '@/lib/db/categories'
 import { AppNavLink } from '@/components/app/app-nav-link'
 import { NewCategoryDialog } from '@/components/app/new-category-dialog'
 import { Separator } from '@/components/ui/separator'
+import { CategoryNavItem } from '@/features/categories/components/category-nav-item'
 
 type AppSidebarProps = {
   userId: string
@@ -33,9 +34,7 @@ export async function AppSidebar({ userId }: AppSidebarProps) {
           <p className="px-2 text-sm text-muted-foreground">No categories yet.</p>
         ) : (
           categories.map((c) => (
-            <AppNavLink key={c.id} href={`/app/category/${c.id}`}>
-              {c.name}
-            </AppNavLink>
+            <CategoryNavItem key={c.id} id={c.id} name={c.name} />
           ))
         )}
       </div>

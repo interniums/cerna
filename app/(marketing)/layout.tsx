@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 import { SiteFooter } from '@/components/site/site-footer'
-import { SiteHeader } from '@/components/site/site-header'
+import { MarketingHeader } from '@/components/site/marketing-header'
 
 export const metadata: Metadata = {
   robots: {
@@ -17,7 +17,7 @@ export default function MarketingLayout({
 }>) {
   return (
     <div className="min-h-dvh">
-      <SiteHeader />
+      <MarketingHeader />
       {children}
       <SiteFooter />
     </div>

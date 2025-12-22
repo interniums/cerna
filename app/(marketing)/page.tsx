@@ -1,11 +1,16 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 
 import { Container } from '@/components/site/container'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { getServerUser } from '@/lib/supabase/auth'
 
-export default function MarketingHomePage() {
+export default async function MarketingHomePage() {
+  const user = await getServerUser()
+  if (user) redirect('/app')
+
   return (
     <main>
       <section className="border-b border-border/60">

@@ -1,3 +1,5 @@
+import { redirect } from 'next/navigation'
+
 import { NewResourceDialog } from '@/components/app/new-resource-dialog'
 import { listCategories } from '@/lib/db/categories'
 import { listResources } from '@/lib/db/resources'
@@ -19,7 +21,8 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
     listResources({ userId: user.id, scope: 'category', categoryId }),
   ])
 
-  const categoryName = categories.find((c) => c.id === categoryId)?.name ?? 'Category'
+  const category = categories.find((c) => c.id === categoryId)
+  if (!category) redirect('/app')
 
   const sp = (await searchParams) ?? {}
   const undoId = sp.undo
@@ -27,7 +30,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
   return (
     <div className="grid gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">{categoryName}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{category.name}</h1>
         <NewResourceDialog defaultCategoryId={categoryId} />
       </div>
 

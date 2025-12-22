@@ -25,7 +25,7 @@ export default async function AppLayout({
     <div className="min-h-dvh">
       <header className="border-b border-border/60">
         <Container className="flex h-14 items-center justify-between">
-          <Logo />
+          <Logo href="/app" />
           <nav className="flex items-center gap-4 text-sm">
             <div className="hidden sm:block">
               <Button variant="secondary" size="sm" asChild>

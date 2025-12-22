@@ -5,12 +5,13 @@ import { cn } from '@/lib/utils'
 type LogoProps = {
   className?: string
   withWordmark?: boolean
+  href?: string
 }
 
-export function Logo({ className, withWordmark = true }: LogoProps) {
+export function Logo({ className, withWordmark = true, href = '/' }: LogoProps) {
   return (
     <Link
-      href="/"
+      href={href}
       className={cn(
         'inline-flex items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         className

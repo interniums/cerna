@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useState } from 'react'
+import { useActionState, useCallback, useEffect, useState } from 'react'
 
 import { createCategoryAction, type CategoryActionState } from '@/features/categories/actions'
 import { FormSubmitButton } from '@/components/forms/form-submit-button'
@@ -11,8 +11,16 @@ import { Label } from '@/components/ui/label'
 
 const initialState: CategoryActionState = { ok: false, message: '' }
 
-function NewCategoryDialogBody() {
+type NewCategoryDialogBodyProps = {
+  onCreated: () => void
+}
+
+function NewCategoryDialogBody({ onCreated }: NewCategoryDialogBodyProps) {
   const [state, formAction] = useActionState(createCategoryAction, initialState)
+
+  useEffect(() => {
+    if (state.ok) onCreated()
+  }, [state.ok, onCreated])
 
   return (
     <DialogContent>
@@ -50,15 +58,25 @@ function NewCategoryDialogBody() {
 
 export function NewCategoryDialog() {
   const [resetKey, setResetKey] = useState(0)
+  const [open, setOpen] = useState(false)
+
+  const handleOpenChange = useCallback((nextOpen: boolean) => {
+    setOpen(nextOpen)
+    if (!nextOpen) setResetKey((k) => k + 1)
+  }, [])
+
+  const handleCreated = useCallback(() => {
+    handleOpenChange(false)
+  }, [handleOpenChange])
 
   return (
-    <Dialog onOpenChange={(open) => (!open ? setResetKey((k) => k + 1) : null)}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="secondary" size="sm">
           New category
         </Button>
       </DialogTrigger>
-      <NewCategoryDialogBody key={resetKey} />
+      <NewCategoryDialogBody key={resetKey} onCreated={handleCreated} />
     </Dialog>
   )
 }
