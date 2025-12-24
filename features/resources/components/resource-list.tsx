@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Pin, PinOff, Star, StarOff, Trash2 } from 'lucide-react'
+import { Pin, PinOff, Star, Trash2 } from 'lucide-react'
 import { Link2 } from 'lucide-react'
 
 import type { Resource } from '@/lib/db/resources'
@@ -139,7 +139,11 @@ export function ResourceList({ resources }: { resources: Resource[] }) {
                       className="cerna-hover-control"
                       aria-label={r.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
                     >
-                      {r.is_favorite ? <StarOff aria-hidden="true" /> : <Star aria-hidden="true" />}
+                      {r.is_favorite ? (
+                        <Star aria-hidden="true" className="text-yellow-500" fill="currentColor" />
+                      ) : (
+                        <Star aria-hidden="true" />
+                      )}
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent sideOffset={6}>{r.is_favorite ? 'Unfavorite' : 'Favorite'}</TooltipContent>

@@ -2,12 +2,15 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { hasActiveEntitlement } from '@/lib/billing/entitlements'
+import { isBillingEnabled } from '@/lib/billing/mode'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { requireServerUser } from '@/lib/supabase/auth'
 
 export default async function SubscribeSuccessPage() {
   const user = await requireServerUser()
+  if (!isBillingEnabled()) redirect('/app')
+
   const isActive = await hasActiveEntitlement(user.id)
 
   if (isActive) redirect('/app')

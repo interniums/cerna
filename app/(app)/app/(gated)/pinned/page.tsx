@@ -17,14 +17,16 @@ export default async function PinnedPage({ searchParams }: PinnedPageProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 pr-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Pinned</h1>
-        <NewResourceDialog />
+        <NewResourceDialog trigger="icon" />
       </div>
 
       {undoId ? <UndoBanner resourceId={undoId} /> : null}
-      <ScrollYFade className="h-[520px]" viewportClassName="pr-1">
-        <ResourceList resources={resources} />
+      <ScrollYFade className="flex-1" viewportClassName="pr-4">
+        <div className="pt-4 pb-4">
+          <ResourceList resources={resources} />
+        </div>
       </ScrollYFade>
     </div>
   )

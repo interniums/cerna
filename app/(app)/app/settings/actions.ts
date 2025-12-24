@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation'
 
+import { isBillingEnabled } from '@/lib/billing/mode'
 import { getSiteUrl } from '@/lib/site/url'
 import { solidgateCancelSubscriptionByCustomer } from '@/lib/solidgate/client'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -22,12 +23,16 @@ async function requireSolidgateCustomerAccountId(userId: string) {
 }
 
 export async function manageBillingAction() {
+  if (!isBillingEnabled()) redirect(`${getSiteUrl()}/app/settings`)
+
   // For now we keep users in-app; this action routes to the Billing section.
   // (Server Action used to avoid UI handler logic.)
   redirect(`${getSiteUrl()}/app/settings`)
 }
 
 export async function cancelSubscriptionAction() {
+  if (!isBillingEnabled()) redirect(`${getSiteUrl()}/app/settings`)
+
   const user = await requireServerUser()
 
   const customerAccountId = await requireSolidgateCustomerAccountId(user.id)

@@ -62,6 +62,7 @@ export async function createResourceAction(
         console.error('indexResourceEmbedding failed', error)
       })
     }
+    revalidatePath('/app', 'layout')
     revalidatePath('/app')
     revalidatePath('/app/all')
     revalidatePath('/app/pinned')
@@ -75,6 +76,7 @@ export async function togglePinnedAction(resourceId: string, _formData?: FormDat
   void _formData
   const user = await requireServerUser()
   await togglePinned({ userId: user.id, resourceId })
+  revalidatePath('/app', 'layout')
   revalidatePath('/app')
   revalidatePath('/app/pinned')
   revalidatePath('/app/all')
@@ -84,6 +86,7 @@ export async function toggleFavoriteAction(resourceId: string, _formData?: FormD
   void _formData
   const user = await requireServerUser()
   await toggleFavorite({ userId: user.id, resourceId })
+  revalidatePath('/app', 'layout')
   revalidatePath('/app')
   revalidatePath('/app/all')
   revalidatePath('/app/pinned')
@@ -99,6 +102,7 @@ export async function deleteResourceAction(
   const user = await requireServerUser()
   await softDeleteResource({ userId: user.id, resourceId })
 
+  revalidatePath('/app', 'layout')
   revalidatePath('/app')
   revalidatePath('/app/all')
   revalidatePath('/app/pinned')
@@ -110,6 +114,7 @@ export async function restoreResourceAction(resourceId: string, _formData?: Form
   void _formData
   const user = await requireServerUser()
   await restoreResource({ userId: user.id, resourceId })
+  revalidatePath('/app', 'layout')
   revalidatePath('/app')
   revalidatePath('/app/all')
   revalidatePath('/app/pinned')

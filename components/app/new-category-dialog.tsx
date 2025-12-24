@@ -6,7 +6,14 @@ import { Plus } from 'lucide-react'
 import { createCategoryAction, type CategoryActionState } from '@/features/categories/actions'
 import { FormSubmitButton } from '@/components/forms/form-submit-button'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -28,10 +35,13 @@ function NewCategoryDialogBody({ onCreated }: NewCategoryDialogBodyProps) {
     <DialogContent>
       <DialogHeader>
         <DialogTitle>New category</DialogTitle>
+        <DialogDescription className="sr-only">Create a new category for your library.</DialogDescription>
       </DialogHeader>
       <form action={formAction} className="grid gap-4">
         <div className="grid gap-2">
-          <Label htmlFor="category-name">Name</Label>
+          <Label htmlFor="category-name" className="text-muted-foreground">
+            Name
+          </Label>
           <Input id="category-name" name="name" placeholder="Work" autoComplete="off" required />
         </div>
 
@@ -67,22 +77,32 @@ export function NewCategoryDialog() {
     if (!nextOpen) setResetKey((k) => k + 1)
   }, [])
 
+  const handleTriggerClick = useCallback(() => {
+    handleOpenChange(true)
+  }, [handleOpenChange])
+
   const handleCreated = useCallback(() => {
     handleOpenChange(false)
   }, [handleOpenChange])
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon-sm" aria-label="New category">
-              <Plus aria-hidden="true" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent sideOffset={6}>New category</TooltipContent>
-        </Tooltip>
-      </DialogTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label="New category"
+            aria-haspopup="dialog"
+            aria-expanded={open}
+            onClick={handleTriggerClick}
+          >
+            <Plus aria-hidden="true" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent sideOffset={6}>New category</TooltipContent>
+      </Tooltip>
       <NewCategoryDialogBody key={resetKey} onCreated={handleCreated} />
     </Dialog>
   )

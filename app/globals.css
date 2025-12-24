@@ -155,4 +155,19 @@
     /* No bg by default; bg appears on hover. */
     @apply bg-transparent shadow-none transition-[box-shadow,background-color,color] duration-150 ease-out hover:bg-accent hover:text-accent-foreground hover:shadow-sm;
   }
+
+  /* Hide scrollbars but keep scrolling (cross-browser). */
+  .cerna-no-scrollbar {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge legacy */
+  }
+  .cerna-no-scrollbar::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+  }
+}
+
+/* Extra-hardening: some browsers ignore `display:none` on scrollbars when OS forces them visible. */
+.cerna-no-scrollbar::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }

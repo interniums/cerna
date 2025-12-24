@@ -1,13 +1,13 @@
 'use client'
 
 import { useActionState, useEffect, useMemo, useRef, useState } from 'react'
-import { Link2 } from 'lucide-react'
+import { Link2, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { createResourceAction, type ResourceActionState } from '@/features/resources/actions'
 import { FormSubmitButton } from '@/components/forms/form-submit-button'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -19,9 +19,10 @@ const initialState: ResourceActionState = { ok: false, message: '' }
 
 type NewResourceDialogProps = {
   defaultCategoryId?: string
+  trigger?: 'button' | 'icon'
 }
 
-export function NewResourceDialog({ defaultCategoryId }: NewResourceDialogProps) {
+export function NewResourceDialog({ defaultCategoryId, trigger = 'button' }: NewResourceDialogProps) {
   const [open, setOpen] = useState(false)
   const [resetKey, setResetKey] = useState(0)
 
@@ -50,7 +51,13 @@ export function NewResourceDialog({ defaultCategoryId }: NewResourceDialogProps)
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogTrigger asChild>
-        <Button size="sm">Add resource</Button>
+        {trigger === 'icon' ? (
+          <Button type="button" size="icon-sm" aria-label="Add resource">
+            <Plus aria-hidden="true" className="size-4" />
+          </Button>
+        ) : (
+          <Button size="sm">Add resource</Button>
+        )}
       </DialogTrigger>
       <NewResourceDialogBody key={resetKey} hiddenInputs={hiddenInputs} onCreated={handleCreated} />
     </Dialog>
@@ -161,11 +168,14 @@ function NewResourceDialogBody({ hiddenInputs, onCreated }: { hiddenInputs: Reac
     <DialogContent>
       <DialogHeader>
         <DialogTitle>Add resource</DialogTitle>
+        <DialogDescription className="sr-only">Save a new link to your library.</DialogDescription>
       </DialogHeader>
       <form action={formAction} className="grid gap-4">
         {hiddenInputs}
         <div className="grid gap-2">
-          <Label htmlFor="resource-url">URL</Label>
+          <Label htmlFor="resource-url" className="text-muted-foreground">
+            URL
+          </Label>
           <Input
             id="resource-url"
             name="url"
@@ -181,7 +191,9 @@ function NewResourceDialogBody({ hiddenInputs, onCreated }: { hiddenInputs: Reac
         <UrlPreview state={previewState} url={debouncedUrl} preview={preview} />
 
         <div className="grid gap-2">
-          <Label htmlFor="resource-title">Title (optional)</Label>
+          <Label htmlFor="resource-title" className="text-muted-foreground">
+            Title (optional)
+          </Label>
           <Input
             id="resource-title"
             name="title"
@@ -192,7 +204,9 @@ function NewResourceDialogBody({ hiddenInputs, onCreated }: { hiddenInputs: Reac
           />
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="resource-notes">Notes (optional)</Label>
+          <Label htmlFor="resource-notes" className="text-muted-foreground">
+            Notes (optional)
+          </Label>
           <Textarea id="resource-notes" name="notes" placeholder="Why this matters…" rows={4} />
         </div>
 
@@ -229,10 +243,13 @@ function UrlPreview({
   return (
     <Card className="w-full min-w-0 overflow-hidden p-4">
       {state === 'loading' ? (
-        <div className="grid gap-2">
-          <Skeleton className="h-4 w-2/3" />
-          <Skeleton className="h-3 w-full" />
-          <Skeleton className="h-3 w-4/5" />
+        <div className="flex min-w-0 gap-3">
+          <Skeleton className="mt-0.5 size-5 shrink-0 rounded-sm" />
+          <div className="grid min-w-0 flex-1 gap-2">
+            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-4/5" />
+          </div>
         </div>
       ) : state === 'error' ? (
         <p className="text-sm text-muted-foreground">Couldn’t load a preview. You can still save.</p>

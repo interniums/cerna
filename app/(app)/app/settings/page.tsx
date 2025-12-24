@@ -2,6 +2,7 @@ import Link from 'next/link'
 
 import { cancelSubscriptionAction, manageBillingAction } from '@/app/(app)/app/settings/actions'
 import { hasActiveEntitlement } from '@/lib/billing/entitlements'
+import { isBillingEnabled } from '@/lib/billing/mode'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireServerUser } from '@/lib/supabase/auth'
 import { FormSubmitButton } from '@/components/forms/form-submit-button'
@@ -10,6 +11,24 @@ import { Card } from '@/components/ui/card'
 
 export default async function SettingsPage() {
   const user = await requireServerUser()
+  const billingEnabled = isBillingEnabled()
+
+  if (!billingEnabled) {
+    return (
+      <div className="grid gap-4">
+        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
+        <Card className="p-6">
+          <div className="grid gap-3">
+            <p className="text-sm text-muted-foreground">
+              Signed in as <span className="text-foreground">{user.email}</span>
+            </p>
+            <p className="text-sm text-muted-foreground">Billing isn’t available yet.</p>
+          </div>
+        </Card>
+      </div>
+    )
+  }
+
   const isActive = await hasActiveEntitlement(user.id)
   const supabase = await createSupabaseServerClient()
 

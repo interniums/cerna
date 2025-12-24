@@ -3,6 +3,7 @@
 import { z } from 'zod'
 import { redirect } from 'next/navigation'
 
+import { isBillingEnabled } from '@/lib/billing/mode'
 import { getSiteUrl } from '@/lib/site/url'
 import { getSolidgateEnv, getSolidgateProductPriceId } from '@/lib/solidgate/env'
 import { solidgateCreatePaymentPage } from '@/lib/solidgate/client'
@@ -13,6 +14,8 @@ const PlanSchema = z.object({
 })
 
 export async function startCheckoutAction(formData: FormData) {
+  if (!isBillingEnabled()) redirect('/app')
+
   const user = await requireServerUser()
 
   const parsed = PlanSchema.safeParse({

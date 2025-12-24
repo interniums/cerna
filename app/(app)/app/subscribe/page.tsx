@@ -1,14 +1,18 @@
+import { redirect } from 'next/navigation'
 import { startCheckoutAction } from '@/app/(app)/app/subscribe/actions'
 import { Card } from '@/components/ui/card'
 import { FormSubmitButton } from '@/components/forms/form-submit-button'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { isBillingEnabled } from '@/lib/billing/mode'
 
 type SubscribePageProps = {
   searchParams?: Promise<{ interval?: 'monthly' | 'yearly' }>
 }
 
 export default async function SubscribePage({ searchParams }: SubscribePageProps) {
+  if (!isBillingEnabled()) redirect('/app')
+
   const params = (await searchParams) ?? {}
   const selected = params.interval === 'yearly' ? 'yearly' : 'monthly'
 

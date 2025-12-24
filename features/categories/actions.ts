@@ -39,10 +39,13 @@ export async function createCategoryAction(
 
   try {
     await createCategory(user.id, parsed.data.name)
+    revalidatePath('/app', 'layout')
     revalidatePath('/app')
+    revalidatePath('/app/all')
+    revalidatePath('/app/pinned')
     return { ok: true }
-  } catch {
-    return { ok: false, message: 'Couldn’t create category. Try again.' }
+  } catch (error) {
+    return { ok: false, message: mapCategoryWriteErrorToMessage(error) }
   }
 }
 
@@ -66,6 +69,7 @@ export async function renameCategoryAction(
 
   try {
     await renameCategory({ userId: user.id, categoryId: parsed.data.categoryId, name: parsed.data.name })
+    revalidatePath('/app', 'layout')
     revalidatePath('/app')
     revalidatePath(`/app/category/${parsed.data.categoryId}`)
     return { ok: true }
@@ -92,6 +96,7 @@ export async function deleteCategoryAction(
 
   try {
     await deleteCategory({ userId: user.id, categoryId: parsed.data.categoryId })
+    revalidatePath('/app', 'layout')
     revalidatePath('/app')
     revalidatePath('/app/all')
     revalidatePath(`/app/category/${parsed.data.categoryId}`)
