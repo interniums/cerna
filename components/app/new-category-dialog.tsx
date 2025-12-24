@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState, useCallback, useEffect, useState } from 'react'
+import { Plus } from 'lucide-react'
 
 import { createCategoryAction, type CategoryActionState } from '@/features/categories/actions'
 import { FormSubmitButton } from '@/components/forms/form-submit-button'
@@ -8,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 const initialState: CategoryActionState = { ok: false, message: '' }
 
@@ -72,9 +74,14 @@ export function NewCategoryDialog() {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="secondary" size="sm">
-          New category
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon-sm" aria-label="New category">
+              <Plus aria-hidden="true" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent sideOffset={6}>New category</TooltipContent>
+        </Tooltip>
       </DialogTrigger>
       <NewCategoryDialogBody key={resetKey} onCreated={handleCreated} />
     </Dialog>

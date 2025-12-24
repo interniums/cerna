@@ -54,6 +54,12 @@ export async function fetchUrlMetadata(input: { url: string; timeoutMs?: number 
     const ogTitle = $('meta[property="og:title"]').attr('content')
     const ogDesc = $('meta[property="og:description"]').attr('content')
     const ogImage = $('meta[property="og:image"]').attr('content')
+    const ogImageSecure = $('meta[property="og:image:secure_url"]').attr('content')
+    const ogImageUrl = $('meta[property="og:image:url"]').attr('content')
+    const twitterImage =
+      $('meta[name="twitter:image"]').attr('content') || $('meta[property="twitter:image"]').attr('content')
+    const twitterImageSrc =
+      $('meta[name="twitter:image:src"]').attr('content') || $('meta[property="twitter:image:src"]').attr('content')
     const metaDesc = $('meta[name="description"]').attr('content')
     const titleTag = $('title').first().text()
 
@@ -69,7 +75,7 @@ export async function fetchUrlMetadata(input: { url: string; timeoutMs?: number 
       title,
       description,
       faviconUrl: absolutize(input.url, icon),
-      imageUrl: absolutize(input.url, ogImage),
+      imageUrl: absolutize(input.url, pickFirst(ogImageSecure, ogImageUrl, ogImage, twitterImage, twitterImageSrc)),
     }
   } catch {
     return {}
@@ -77,5 +83,3 @@ export async function fetchUrlMetadata(input: { url: string; timeoutMs?: number 
     clearTimeout(timeout)
   }
 }
-
-

@@ -9,9 +9,20 @@ type VectorMatchRow = {
   similarity: number
 }
 
+type TrgmMatchRow = {
+  id: string
+  score: number
+}
+
 function looksSemantic(query: string) {
   const q = query.trim()
   return q.includes(' ') && q.length >= 12
+}
+
+function looksFuzzy(query: string) {
+  const q = query.trim()
+  // Good for typos/short queries where websearch ranking can miss.
+  return q.length >= 3 && q.length <= 32
 }
 
 export async function searchResources(input: { userId: string; query: string; limit?: number }) {
@@ -29,6 +40,19 @@ export async function searchResources(input: { userId: string; query: string; li
     .textSearch('tsv', q, { type: 'websearch' })
     .limit(limit)
 
+  const shouldTryTrgm = looksFuzzy(q)
+  const trgmPromise = shouldTryTrgm
+    ? (async () => {
+        const match = await supabase.rpc('match_resources_trgm', {
+          query_user_id: input.userId,
+          query_text: q,
+          match_count: limit,
+        })
+        if (match.error) throw match.error
+        return (match.data ?? []) as TrgmMatchRow[]
+      })()
+    : Promise.resolve([] as TrgmMatchRow[])
+
   const shouldTryVector = looksSemantic(q) && Boolean(process.env.OPENAI_API_KEY)
 
   const vectorPromise = shouldTryVector
@@ -44,81 +68,83 @@ export async function searchResources(input: { userId: string; query: string; li
       })()
     : Promise.resolve([] as VectorMatchRow[])
 
-  const [keyword, vector] = await Promise.all([keywordPromise, vectorPromise])
+  const [keyword, trgm, vector] = await Promise.all([keywordPromise, trgmPromise, vectorPromise])
   if (keyword.error) throw keyword.error
 
-  // If we have vector matches, fetch those resources and merge with keyword results.
-  if (vector.length > 0) {
-    const ids = vector.map((v) => v.id)
-    const byId = new Map<string, Resource>()
-    const similarityById = new Map<string, number>()
-    for (const v of vector) similarityById.set(v.id, v.similarity)
+  const keywordRows = (keyword.data ?? []) as Resource[]
 
-    const vectorResources = await supabase
+  // If we have any auxiliary matches, fetch those resources and merge with keyword results.
+  const vectorIds = vector.map((v) => v.id)
+  const trgmIds = trgm.map((t) => t.id)
+  const auxIds = Array.from(new Set([...vectorIds, ...trgmIds]))
+
+  const byId = new Map<string, Resource>()
+  const vectorSimById = new Map<string, number>()
+  const trgmScoreById = new Map<string, number>()
+  for (const v of vector) vectorSimById.set(v.id, v.similarity)
+  for (const t of trgm) trgmScoreById.set(t.id, t.score)
+
+  if (auxIds.length > 0) {
+    const auxResources = await supabase
       .from('resources')
       .select('*')
-      .in('id', ids)
+      .in('id', auxIds)
       .eq('user_id', input.userId)
       .is('deleted_at', null)
-    if (vectorResources.error) throw vectorResources.error
-
-    ;(vectorResources.data ?? []).forEach((r) => byId.set(r.id, r as Resource))
-    ;(keyword.data ?? []).forEach((r) => byId.set(r.id, r as Resource))
-
-    const merged: Resource[] = []
-    const seen = new Set<string>()
-    for (const v of vector) {
-      const r = byId.get(v.id)
-      if (r && !seen.has(r.id)) {
-        merged.push(r)
-        seen.add(r.id)
-      }
-    }
-    for (const r of keyword.data ?? []) {
-      const rr = r as Resource
-      if (!seen.has(rr.id)) {
-        merged.push(rr)
-        seen.add(rr.id)
-      }
-    }
-
-    const ranked = merged
-      .slice()
-      .sort((a, b) => {
-        // Always prioritize user intent: pinned/favorite first.
-        if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1
-        if (a.is_favorite !== b.is_favorite) return a.is_favorite ? -1 : 1
-
-        const aSim = similarityById.get(a.id) ?? 0
-        const bSim = similarityById.get(b.id) ?? 0
-        if (aSim !== bSim) return bSim - aSim
-
-        const aLast = a.last_visited_at ? Date.parse(a.last_visited_at) : 0
-        const bLast = b.last_visited_at ? Date.parse(b.last_visited_at) : 0
-        if (aLast !== bLast) return bLast - aLast
-
-        if (a.visit_count !== b.visit_count) return b.visit_count - a.visit_count
-
-        const aUpdated = Date.parse(a.updated_at)
-        const bUpdated = Date.parse(b.updated_at)
-        return bUpdated - aUpdated
-      })
-
-    return ranked.slice(0, limit)
+    if (auxResources.error) throw auxResources.error
+    ;(auxResources.data ?? []).forEach((r) => byId.set(r.id, r as Resource))
   }
 
-  const keywordRows = (keyword.data ?? []) as Resource[]
-  return keywordRows
+  ;(keywordRows ?? []).forEach((r) => byId.set(r.id, r as Resource))
+
+  // Merge order: vector first (best semantic), then trigram (typos), then keyword.
+  const merged: Resource[] = []
+  const seen = new Set<string>()
+  for (const v of vector) {
+    const r = byId.get(v.id)
+    if (r && !seen.has(r.id)) {
+      merged.push(r)
+      seen.add(r.id)
+    }
+  }
+  for (const t of trgm) {
+    const r = byId.get(t.id)
+    if (r && !seen.has(r.id)) {
+      merged.push(r)
+      seen.add(r.id)
+    }
+  }
+  for (const r of keywordRows) {
+    if (!seen.has(r.id)) {
+      merged.push(r)
+      seen.add(r.id)
+    }
+  }
+
+  return merged
     .slice()
     .sort((a, b) => {
+      // Always prioritize user intent: pinned/favorite first.
       if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1
       if (a.is_favorite !== b.is_favorite) return a.is_favorite ? -1 : 1
+
+      const aVec = vectorSimById.get(a.id) ?? 0
+      const bVec = vectorSimById.get(b.id) ?? 0
+      if (aVec !== bVec) return bVec - aVec
+
+      const aTrg = trgmScoreById.get(a.id) ?? 0
+      const bTrg = trgmScoreById.get(b.id) ?? 0
+      if (aTrg !== bTrg) return bTrg - aTrg
+
       const aLast = a.last_visited_at ? Date.parse(a.last_visited_at) : 0
       const bLast = b.last_visited_at ? Date.parse(b.last_visited_at) : 0
       if (aLast !== bLast) return bLast - aLast
+
       if (a.visit_count !== b.visit_count) return b.visit_count - a.visit_count
+
       const aUpdated = Date.parse(a.updated_at)
       const bUpdated = Date.parse(b.updated_at)
       return bUpdated - aUpdated
     })
+    .slice(0, limit)
 }

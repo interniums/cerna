@@ -6,7 +6,6 @@ import {
   CreateResourceSchema,
   createResource,
   restoreResource,
-  setStatus,
   softDeleteResource,
   toggleFavorite,
   togglePinned,
@@ -42,21 +41,21 @@ export async function createResourceAction(
       categoryId: parsed.data.categoryId,
     })
 
-    // Best-effort enrichment. Keep timeout tight to avoid slowing the save flow.
-    if (!parsed.data.title) {
-      void fetchUrlMetadata({ url: created.url, timeoutMs: 1500 })
-        .then(async (meta) => {
-          await updateResourceMetadata({
-            userId: user.id,
-            resourceId: created.id,
-            title: meta.title,
-            description: meta.description,
-            faviconUrl: meta.faviconUrl,
-            imageUrl: meta.imageUrl,
-          })
+    // Best-effort enrichment (favicon + og:image + description).
+    // Keep timeout tight to avoid slowing the save flow.
+    // If the user typed a title, we don't override it.
+    void fetchUrlMetadata({ url: created.url, timeoutMs: 1500 })
+      .then(async (meta) => {
+        await updateResourceMetadata({
+          userId: user.id,
+          resourceId: created.id,
+          title: parsed.data.title ? undefined : meta.title,
+          description: meta.description,
+          faviconUrl: meta.faviconUrl,
+          imageUrl: meta.imageUrl,
         })
-        .catch(() => null)
-    }
+      })
+      .catch(() => null)
 
     if (process.env.OPENAI_API_KEY) {
       void indexResourceEmbedding({ userId: user.id, resourceId: created.id }).catch((error) => {
@@ -66,7 +65,6 @@ export async function createResourceAction(
     revalidatePath('/app')
     revalidatePath('/app/all')
     revalidatePath('/app/pinned')
-    revalidatePath('/app/archive')
     return { ok: true }
   } catch {
     return { ok: false, message: 'Couldn’t save. Try again.' }
@@ -91,23 +89,6 @@ export async function toggleFavoriteAction(resourceId: string, _formData?: FormD
   revalidatePath('/app/pinned')
 }
 
-export async function archiveResourceAction(resourceId: string, _formData?: FormData) {
-  void _formData
-  const user = await requireServerUser()
-  await setStatus({ userId: user.id, resourceId, status: 'archived' })
-  revalidatePath('/app/archive')
-  revalidatePath('/app/all')
-  revalidatePath('/app')
-}
-
-export async function unarchiveResourceAction(resourceId: string, _formData?: FormData) {
-  void _formData
-  const user = await requireServerUser()
-  await setStatus({ userId: user.id, resourceId, status: 'unread' })
-  revalidatePath('/app/archive')
-  revalidatePath('/app/all')
-}
-
 export async function deleteResourceAction(
   _prev: ResourceActionState,
   formData: FormData
@@ -121,7 +102,6 @@ export async function deleteResourceAction(
   revalidatePath('/app')
   revalidatePath('/app/all')
   revalidatePath('/app/pinned')
-  revalidatePath('/app/archive')
 
   return { ok: true, undoResourceId: resourceId }
 }
@@ -133,5 +113,4 @@ export async function restoreResourceAction(resourceId: string, _formData?: Form
   revalidatePath('/app')
   revalidatePath('/app/all')
   revalidatePath('/app/pinned')
-  revalidatePath('/app/archive')
 }

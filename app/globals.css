@@ -1,5 +1,5 @@
-@import "tailwindcss";
-@import "tw-animate-css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -121,5 +121,38 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Clickable elements should feel clickable. */
+@layer base {
+  a,
+  button,
+  [role='button'],
+  [role='link'],
+  summary,
+  input[type='submit'],
+  input[type='button'],
+  input[type='reset'] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  input:disabled,
+  [aria-disabled='true'] {
+    cursor: not-allowed;
+  }
+}
+
+/* Reusable calm hover patterns */
+@layer components {
+  .cerna-hover-card {
+    /* Calm: only border + slight shadow (no tint/ring). */
+    @apply transition-[box-shadow,border-color] duration-150 ease-out hover:border-border/90 hover:shadow-md group-hover:border-border/90 group-hover:shadow-md;
+  }
+
+  .cerna-hover-control {
+    /* No bg by default; bg appears on hover. */
+    @apply bg-transparent shadow-none transition-[box-shadow,background-color,color] duration-150 ease-out hover:bg-accent hover:text-accent-foreground hover:shadow-sm;
   }
 }

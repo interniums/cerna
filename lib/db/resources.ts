@@ -4,8 +4,6 @@ import { z } from 'zod'
 
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
-export type ResourceStatus = 'unread' | 'archived'
-
 export type Resource = {
   id: string
   user_id: string
@@ -16,7 +14,6 @@ export type Resource = {
   favicon_url: string | null
   image_url: string | null
   notes: string | null
-  status: ResourceStatus
   is_pinned: boolean
   is_favorite: boolean
   visit_count: number
@@ -35,7 +32,7 @@ export const CreateResourceSchema = z.object({
 
 export async function listResources(input: {
   userId: string
-  scope: 'all' | 'pinned' | 'archive' | 'category'
+  scope: 'all' | 'pinned' | 'category'
   categoryId?: string
   limit?: number
 }) {
@@ -44,7 +41,6 @@ export async function listResources(input: {
   let query = supabase.from('resources').select('*').eq('user_id', input.userId).is('deleted_at', null)
 
   if (input.scope === 'pinned') query = query.eq('is_pinned', true)
-  if (input.scope === 'archive') query = query.eq('status', 'archived')
   if (input.scope === 'category') query = query.eq('category_id', input.categoryId ?? '')
 
   const res = await query
@@ -55,7 +51,19 @@ export async function listResources(input: {
     .limit(input.limit ?? 100)
 
   if (res.error) throw res.error
-  return (res.data ?? []) as Resource[]
+  const rows = (res.data ?? []) as Resource[]
+
+  // Keep pinned resources stable: older pinned items should stay above newer pinned items.
+  // We don't currently track a `pinned_at`, so `created_at` is our best stable proxy.
+  const pinned: Resource[] = []
+  const unpinned: Resource[] = []
+  for (const r of rows) (r.is_pinned ? pinned : unpinned).push(r)
+
+  if (pinned.length > 1) {
+    pinned.sort((a, b) => a.created_at.localeCompare(b.created_at))
+  }
+
+  return [...pinned, ...unpinned]
 }
 
 export async function createResource(input: {
@@ -100,11 +108,7 @@ export async function updateResourceMetadata(input: {
 
   if (Object.keys(patch).length === 0) return
 
-  const res = await supabase
-    .from('resources')
-    .update(patch)
-    .eq('id', input.resourceId)
-    .eq('user_id', input.userId)
+  const res = await supabase.from('resources').update(patch).eq('id', input.resourceId).eq('user_id', input.userId)
 
   if (res.error) throw res.error
 }
@@ -151,19 +155,6 @@ export async function toggleFavorite(input: { userId: string; resourceId: string
 
   if (res.error) throw res.error
   return res.data as Pick<Resource, 'id' | 'is_favorite'>
-}
-
-export async function setStatus(input: { userId: string; resourceId: string; status: ResourceStatus }) {
-  const supabase = await createSupabaseServerClient()
-  const res = await supabase
-    .from('resources')
-    .update({ status: input.status })
-    .eq('id', input.resourceId)
-    .eq('user_id', input.userId)
-    .select('id,status')
-    .single()
-  if (res.error) throw res.error
-  return res.data as Pick<Resource, 'id' | 'status'>
 }
 
 export async function softDeleteResource(input: { userId: string; resourceId: string }) {

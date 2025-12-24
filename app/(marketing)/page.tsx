@@ -45,7 +45,7 @@ export default async function MarketingHomePage() {
           <Card className="p-5">
             <h2 className="text-sm font-semibold tracking-tight">Save for later</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Notes, tags, unread/archive. Keep everything tidy without losing context.
+              Notes, tags, and pinned. Keep everything tidy without losing context.
             </p>
           </Card>
           <Card className="p-5">

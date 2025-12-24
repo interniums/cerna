@@ -2,24 +2,37 @@
 
 import { redirect } from 'next/navigation'
 
-import { getOrCreateStripeCustomerId } from '@/lib/db/stripe'
 import { getSiteUrl } from '@/lib/site/url'
-import { getStripe } from '@/lib/stripe/server'
+import { solidgateCancelSubscriptionByCustomer } from '@/lib/solidgate/client'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireServerUser } from '@/lib/supabase/auth'
 
-export async function openBillingPortalAction() {
+async function requireSolidgateCustomerAccountId(userId: string) {
+  const supabase = await createSupabaseServerClient()
+  const res = await supabase
+    .from('billing_customers')
+    .select('provider_customer_id')
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  if (res.error) throw res.error
+  const id = res.data?.provider_customer_id ?? null
+  if (!id) throw new Error('Billing customer not found. Please complete checkout first.')
+  return id
+}
+
+export async function manageBillingAction() {
+  // For now we keep users in-app; this action routes to the Billing section.
+  // (Server Action used to avoid UI handler logic.)
+  redirect(`${getSiteUrl()}/app/settings`)
+}
+
+export async function cancelSubscriptionAction() {
   const user = await requireServerUser()
 
-  const customerId = await getOrCreateStripeCustomerId({
-    userId: user.id,
-    email: user.email ?? null,
-  })
+  const customerAccountId = await requireSolidgateCustomerAccountId(user.id)
+  await solidgateCancelSubscriptionByCustomer({ customerAccountId })
 
-  const stripe = getStripe()
-  const session = await stripe.billingPortal.sessions.create({
-    customer: customerId,
-    return_url: `${getSiteUrl()}/app/settings`,
-  })
-
-  redirect(session.url)
+  // Entitlements will update via webhook; keep UX predictable.
+  redirect(`${getSiteUrl()}/app/settings`)
 }

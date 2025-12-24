@@ -11,9 +11,11 @@ export default async function GatedAppLayout({
   await requireActiveEntitlement(user.id)
 
   return (
-    <div className="grid gap-8 sm:grid-cols-[15rem_minmax(0,1fr)]">
+    <div className="grid h-full min-h-0 gap-8 sm:grid-cols-[minmax(0,1fr)_15rem_minmax(0,clamp(28rem,60vw,56rem))_minmax(0,1fr)]">
+      <div className="hidden sm:block" aria-hidden="true" />
       <AppSidebar userId={user.id} />
-      <div className="min-w-0">{children}</div>
+      <div className="flex h-full min-h-0 flex-col py-6">{children}</div>
+      <div className="hidden sm:block" aria-hidden="true" />
     </div>
   )
 }

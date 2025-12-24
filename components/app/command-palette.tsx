@@ -1,98 +1,184 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ExternalLink } from 'lucide-react'
 
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+import {
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandShortcut,
+} from '@/components/ui/command'
+import { useSpotlightData } from '@/components/app/spotlight-data'
 
 type CommandPaletteProps = {
   defaultOpen?: boolean
 }
 
-function isKShortcut(event: KeyboardEvent) {
-  const isMac = navigator.platform.toLowerCase().includes('mac')
-  const mod = isMac ? event.metaKey : event.ctrlKey
-  return mod && event.key.toLowerCase() === 'k'
-}
+import {
+  RECENT_SEARCHES_KEY,
+  RECENT_SEARCHES_MAX,
+  getOutHref,
+  getPrimaryText,
+  isCommandPaletteShortcut,
+  isTypingTarget,
+  makeResourceValue,
+  parseResourceIdFromValue,
+  readRecentSearches,
+} from '@/components/app/spotlight-utils'
 
 export function CommandPalette({ defaultOpen = false }: CommandPaletteProps) {
-  const router = useRouter()
   const [open, setOpen] = useState(defaultOpen)
   const [query, setQuery] = useState('')
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const debounceRef = useRef<number | null>(null)
+  const { items, status, fetchForQuery, cancel } = useSpotlightData()
+  const [recentSearches, setRecentSearches] = useState<string[]>(readRecentSearches)
 
-  const items = useMemo(
-    () => [
-      { label: 'Search', href: '/app/search' },
-      { label: 'Dashboard', href: '/app' },
-      { label: 'Pinned', href: '/app/pinned' },
-      { label: 'All', href: '/app/all' },
-      { label: 'Archive', href: '/app/archive' },
-      { label: 'Settings', href: '/app/settings' },
-    ],
-    []
-  )
+  const trimmedQuery = query.trim()
+  const hasQuery = Boolean(trimmedQuery)
 
-  function close() {
+  const close = useCallback(() => {
+    if (debounceRef.current) window.clearTimeout(debounceRef.current)
+    debounceRef.current = null
     setOpen(false)
     setQuery('')
-  }
+    cancel()
+  }, [cancel])
 
-  function goTo(href: string) {
-    close()
-    router.push(href)
-  }
+  const openSpotlight = useCallback(() => {
+    setOpen(true)
+    // Focus after the dialog mounts.
+    window.setTimeout(() => inputRef.current?.focus(), 0)
+  }, [])
 
-  function goToSearchWithQuery() {
-    const q = query.trim()
-    close()
-    router.push(q ? `/app/search?q=${encodeURIComponent(q)}` : '/app/search')
-  }
+  const handleDialogOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen) close()
+      else openSpotlight()
+    },
+    [close, openSpotlight]
+  )
+
+  const persistRecentSearch = useCallback(
+    (nextQuery: string) => {
+      const q = nextQuery.trim()
+      if (!q) return
+      const next = [q, ...recentSearches.filter((x) => x !== q)].slice(0, RECENT_SEARCHES_MAX)
+      setRecentSearches(next)
+      try {
+        window.localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(next))
+      } catch {
+        // ignore
+      }
+    },
+    [recentSearches]
+  )
+
+  const handleSelectRecentSearchValue = useCallback(
+    (value: string) => {
+      setQuery(value)
+      fetchForQuery(value)
+      window.setTimeout(() => inputRef.current?.focus(), 0)
+    },
+    [fetchForQuery]
+  )
+
+  const openResourceById = useCallback((resourceId: string) => {
+    window.open(getOutHref(resourceId), '_blank', 'noopener,noreferrer')
+  }, [])
+
+  const handleSelectResourceValue = useCallback(
+    (value: string) => {
+      if (hasQuery) persistRecentSearch(trimmedQuery)
+      close()
+      openResourceById(parseResourceIdFromValue(value))
+    },
+    [close, hasQuery, openResourceById, persistRecentSearch, trimmedQuery]
+  )
+
+  const handleQueryValueChange = useCallback(
+    (next: string) => {
+      setQuery(next)
+      if (!open) return
+
+      if (debounceRef.current) window.clearTimeout(debounceRef.current)
+      debounceRef.current = window.setTimeout(() => {
+        fetchForQuery(next.trim())
+      }, 120)
+    },
+    [fetchForQuery, open]
+  )
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (isKShortcut(event)) {
+      if (isTypingTarget(event.target)) return
+      if (isCommandPaletteShortcut(event)) {
         event.preventDefault()
-        setOpen((v) => !v)
+        if (open) {
+          close()
+        } else {
+          openSpotlight()
+        }
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [])
+  }, [close, open, openSpotlight])
+
+  useEffect(() => {
+    function onOpenEvent() {
+      openSpotlight()
+    }
+    window.addEventListener('cerna:open-spotlight', onOpenEvent)
+    return () => window.removeEventListener('cerna:open-spotlight', onOpenEvent)
+  }, [openSpotlight])
+
+  const resources = useMemo(() => items, [items])
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="p-0">
-        <Command shouldFilter={true}>
-          <CommandInput
-            placeholder="Search or jump to…"
-            value={query}
-            onValueChange={setQuery}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                goToSearchWithQuery()
-              }
-            }}
-          />
-          <CommandList>
-            <CommandEmpty>No results.</CommandEmpty>
-            <CommandGroup heading="Navigate">
-              {items.map((item) => (
-                <CommandItem
-                  key={item.href}
-                  value={item.label}
-                  onSelect={() => goTo(item.href)}
-                >
-                  {item.label}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </DialogContent>
-    </Dialog>
+    <CommandDialog
+      open={open}
+      onOpenChange={handleDialogOpenChange}
+      showCloseButton={false}
+      className="max-w-2xl overflow-hidden rounded-2xl border border-border/70 bg-popover/80 p-0 shadow-2xl backdrop-blur-xl"
+    >
+      <CommandInput ref={inputRef} placeholder="Search…" value={query} onValueChange={handleQueryValueChange} />
+      <CommandList className="max-h-[360px] px-1 pb-1">
+        {status === 'error' ? <CommandEmpty>Couldn’t load results.</CommandEmpty> : null}
+
+        {!hasQuery && recentSearches.length > 0 ? (
+          <CommandGroup heading="Recent searches">
+            {recentSearches.map((q) => (
+              <CommandItem key={q} value={q} onSelect={handleSelectRecentSearchValue} className="rounded-lg">
+                <span className="min-w-0 truncate">{q}</span>
+                <CommandShortcut>↩</CommandShortcut>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        ) : null}
+
+        <CommandGroup heading={hasQuery ? 'Results' : 'Recent'}>
+          {resources.map((r) => (
+            <CommandItem
+              key={r.id}
+              value={makeResourceValue(r)}
+              onSelect={handleSelectResourceValue}
+              className="rounded-lg"
+            >
+              <span className="min-w-0 truncate">{getPrimaryText(r)}</span>
+              <CommandShortcut className="flex items-center gap-1">
+                <ExternalLink className="size-3.5" aria-hidden="true" />
+              </CommandShortcut>
+            </CommandItem>
+          ))}
+
+          {status === 'ready' && resources.length === 0 ? <CommandEmpty>No results.</CommandEmpty> : null}
+        </CommandGroup>
+      </CommandList>
+    </CommandDialog>
   )
 }
-
-

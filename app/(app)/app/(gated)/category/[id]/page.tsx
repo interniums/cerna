@@ -6,6 +6,7 @@ import { listResources } from '@/lib/db/resources'
 import { requireServerUser } from '@/lib/supabase/auth'
 import { ResourceList } from '@/features/resources/components/resource-list'
 import { UndoBanner } from '@/features/resources/components/undo-banner'
+import { ScrollYFade } from '@/components/ui/scroll-y-fade'
 
 type CategoryPageProps = {
   params: Promise<{ id: string }>
@@ -28,14 +29,16 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
   const undoId = sp.undo
 
   return (
-    <div className="grid gap-4">
+    <div className="flex h-full min-h-0 flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">{category.name}</h1>
         <NewResourceDialog defaultCategoryId={categoryId} />
       </div>
 
       {undoId ? <UndoBanner resourceId={undoId} /> : null}
-      <ResourceList resources={resources} />
+      <ScrollYFade className="h-[520px]" viewportClassName="pr-1">
+        <ResourceList resources={resources} />
+      </ScrollYFade>
     </div>
   )
 }

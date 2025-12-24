@@ -1,11 +1,14 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { Home, Settings } from 'lucide-react'
 
 import { Container } from '@/components/site/container'
 import { Logo } from '@/components/brand/logo'
 import { requireServerUser } from '@/lib/supabase/auth'
 import { CommandPalette } from '@/components/app/command-palette'
 import { Button } from '@/components/ui/button'
+import { OpenSpotlightButton } from '@/components/app/open-spotlight-button'
+import { SpotlightDataProvider } from '@/components/app/spotlight-data'
 
 export const metadata: Metadata = {
   robots: {
@@ -22,29 +25,33 @@ export default async function AppLayout({
   await requireServerUser()
 
   return (
-    <div className="min-h-dvh">
-      <header className="border-b border-border/60">
+    <div className="flex h-dvh flex-col overflow-hidden">
+      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur">
         <Container className="flex h-14 items-center justify-between">
           <Logo href="/app" />
           <nav className="flex items-center gap-4 text-sm">
-            <div className="hidden sm:block">
-              <Button variant="secondary" size="sm" asChild>
-                <Link href="/app/search">Search</Link>
-              </Button>
-            </div>
-            <Link href="/app" className="text-muted-foreground hover:text-foreground">
-              Dashboard
-            </Link>
-            <Link href="/app/settings" className="text-muted-foreground hover:text-foreground">
-              Settings
-            </Link>
+            <OpenSpotlightButton />
+            <Button asChild variant="ghost" size="icon-sm" aria-label="Dashboard">
+              <Link href="/app">
+                <Home aria-hidden="true" />
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" size="icon-sm" aria-label="Settings">
+              <Link href="/app/settings">
+                <Settings aria-hidden="true" />
+              </Link>
+            </Button>
           </nav>
         </Container>
       </header>
-      <main>
-        <Container className="py-10">{children}</Container>
+      <main className="flex-1 overflow-hidden">
+        <Container className="flex h-full min-h-0 flex-col py-10">
+          <div className="flex-1 min-h-0">{children}</div>
+        </Container>
       </main>
-      <CommandPalette />
+      <SpotlightDataProvider>
+        <CommandPalette />
+      </SpotlightDataProvider>
     </div>
   )
 }

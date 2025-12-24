@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useMemo, useRef, useState } from 'react'
 import { Link2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 import { createResourceAction, type ResourceActionState } from '@/features/resources/actions'
 import { FormSubmitButton } from '@/components/forms/form-submit-button'
@@ -21,6 +22,7 @@ type NewResourceDialogProps = {
 }
 
 export function NewResourceDialog({ defaultCategoryId }: NewResourceDialogProps) {
+  const [open, setOpen] = useState(false)
   const [resetKey, setResetKey] = useState(0)
 
   const hiddenInputs = useMemo(() => {
@@ -28,17 +30,34 @@ export function NewResourceDialog({ defaultCategoryId }: NewResourceDialogProps)
     return <input type="hidden" name="categoryId" value={defaultCategoryId} />
   }, [defaultCategoryId])
 
+  function handleDialogOpenChange(nextOpen: boolean) {
+    setOpen(nextOpen)
+    if (!nextOpen) setResetKey((k) => k + 1)
+  }
+
+  function closeAndResetDialog() {
+    setOpen(false)
+    setResetKey((k) => k + 1)
+  }
+
+  function handleCreated() {
+    toast.success('Resource added.')
+    // Important: when we close programmatically, Radix won't call `onOpenChange`,
+    // so we must also reset internal dialog state ourselves.
+    closeAndResetDialog()
+  }
+
   return (
-    <Dialog onOpenChange={(open) => (!open ? setResetKey((k) => k + 1) : null)}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogTrigger asChild>
         <Button size="sm">Add resource</Button>
       </DialogTrigger>
-      <NewResourceDialogBody key={resetKey} hiddenInputs={hiddenInputs} />
+      <NewResourceDialogBody key={resetKey} hiddenInputs={hiddenInputs} onCreated={handleCreated} />
     </Dialog>
   )
 }
 
-function NewResourceDialogBody({ hiddenInputs }: { hiddenInputs: React.ReactNode }) {
+function NewResourceDialogBody({ hiddenInputs, onCreated }: { hiddenInputs: React.ReactNode; onCreated: () => void }) {
   const [state, formAction] = useActionState(createResourceAction, initialState)
   const [urlInput, setUrlInput] = useState('')
   const [titleInput, setTitleInput] = useState('')
@@ -52,6 +71,8 @@ function NewResourceDialogBody({ hiddenInputs }: { hiddenInputs: React.ReactNode
   const [previewState, setPreviewState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
   const inFlight = useRef<AbortController | null>(null)
   const titleEditedRef = useRef(false)
+  const didCompleteRef = useRef(false)
+  const errorMessage = state.ok ? '' : state.message
 
   function handleUrlChange(next: string) {
     setUrlInput(next)
@@ -60,6 +81,14 @@ function NewResourceDialogBody({ hiddenInputs }: { hiddenInputs: React.ReactNode
   function handleTitleChange(next: string) {
     titleEditedRef.current = true
     setTitleInput(next)
+  }
+
+  function handleUrlInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    handleUrlChange(e.target.value)
+  }
+
+  function handleTitleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    handleTitleChange(e.target.value)
   }
 
   async function fetchPreview(url: string) {
@@ -121,6 +150,13 @@ function NewResourceDialogBody({ hiddenInputs }: { hiddenInputs: React.ReactNode
     setTitleInput(candidate)
   }, [previewState, preview?.title, titleInput])
 
+  useEffect(() => {
+    if (didCompleteRef.current) return
+    if (!state.ok) return
+    didCompleteRef.current = true
+    onCreated()
+  }, [onCreated, state.ok])
+
   return (
     <DialogContent>
       <DialogHeader>
@@ -138,7 +174,7 @@ function NewResourceDialogBody({ hiddenInputs }: { hiddenInputs: React.ReactNode
             autoComplete="off"
             required
             value={urlInput}
-            onChange={(e) => handleUrlChange(e.target.value)}
+            onChange={handleUrlInputChange}
           />
         </div>
 
@@ -152,7 +188,7 @@ function NewResourceDialogBody({ hiddenInputs }: { hiddenInputs: React.ReactNode
             placeholder="Onboarding doc"
             autoComplete="off"
             value={titleInput}
-            onChange={(e) => handleTitleChange(e.target.value)}
+            onChange={handleTitleInputChange}
           />
         </div>
         <div className="grid gap-2">
@@ -160,13 +196,9 @@ function NewResourceDialogBody({ hiddenInputs }: { hiddenInputs: React.ReactNode
           <Textarea id="resource-notes" name="notes" placeholder="Why this matters…" rows={4} />
         </div>
 
-        {state.ok ? (
-          <p className="text-sm text-muted-foreground" role="status" aria-live="polite">
-            Saved. You can close this.
-          </p>
-        ) : state.message ? (
+        {errorMessage ? (
           <p className="text-sm text-destructive" role="status" aria-live="polite">
-            {state.message}
+            {errorMessage}
           </p>
         ) : null}
 
