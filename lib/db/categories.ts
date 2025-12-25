@@ -1,8 +1,10 @@
 import 'server-only'
 
 import { z } from 'zod'
+import { unstable_cache } from 'next/cache'
 
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { categoriesTag } from '@/lib/cache/tags'
 
 export type Category = {
   id: string
@@ -19,16 +21,27 @@ export const CreateCategorySchema = z.object({
 export const CategoryIdSchema = z.string().uuid()
 
 export async function listCategories(userId: string) {
+  // NOTE: Supabase server client reads auth cookies. Next.js forbids accessing dynamic sources
+  // (like `cookies()`) inside `unstable_cache`, so we must create the client outside the cache scope.
   const supabase = await createSupabaseServerClient()
-  const res = await supabase
-    .from('categories')
-    .select('*')
-    .eq('user_id', userId)
-    .order('sort_order', { ascending: true })
-    .order('created_at', { ascending: true })
 
-  if (res.error) throw res.error
-  return (res.data ?? []) as Category[]
+  const cached = unstable_cache(
+    async () => {
+      const res = await supabase
+        .from('categories')
+        .select('*')
+        .eq('user_id', userId)
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: true })
+
+      if (res.error) throw res.error
+      return (res.data ?? []) as Category[]
+    },
+    ['listCategories', userId],
+    { revalidate: 60, tags: [categoriesTag(userId)] }
+  )
+
+  return cached()
 }
 
 export async function createCategory(userId: string, name: string) {

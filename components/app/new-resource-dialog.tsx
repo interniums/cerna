@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useMemo, useRef, useState } from 'react'
 import { Link2, Plus } from 'lucide-react'
 import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
 
 import { createResourceAction, type ResourceActionState } from '@/features/resources/actions'
 import { FormSubmitButton } from '@/components/forms/form-submit-button'
@@ -23,6 +24,7 @@ type NewResourceDialogProps = {
 }
 
 export function NewResourceDialog({ defaultCategoryId, trigger = 'button' }: NewResourceDialogProps) {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [resetKey, setResetKey] = useState(0)
 
@@ -43,6 +45,7 @@ export function NewResourceDialog({ defaultCategoryId, trigger = 'button' }: New
 
   function handleCreated() {
     toast.success('Resource added.')
+    router.refresh()
     // Important: when we close programmatically, Radix won't call `onOpenChange`,
     // so we must also reset internal dialog state ourselves.
     closeAndResetDialog()

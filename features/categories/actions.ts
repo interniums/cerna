@@ -1,9 +1,10 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import { revalidateTag } from 'next/cache'
 import { z } from 'zod'
 
 import { CategoryIdSchema, CreateCategorySchema, createCategory, deleteCategory, renameCategory } from '@/lib/db/categories'
+import { categoriesTag, resourcesTag } from '@/lib/cache/tags'
 import { requireServerUser } from '@/lib/supabase/auth'
 
 export type CategoryActionState = { ok: true } | { ok: false; message: string }
@@ -39,10 +40,7 @@ export async function createCategoryAction(
 
   try {
     await createCategory(user.id, parsed.data.name)
-    revalidatePath('/app', 'layout')
-    revalidatePath('/app')
-    revalidatePath('/app/all')
-    revalidatePath('/app/pinned')
+    revalidateTag(categoriesTag(user.id))
     return { ok: true }
   } catch (error) {
     return { ok: false, message: mapCategoryWriteErrorToMessage(error) }
@@ -69,9 +67,7 @@ export async function renameCategoryAction(
 
   try {
     await renameCategory({ userId: user.id, categoryId: parsed.data.categoryId, name: parsed.data.name })
-    revalidatePath('/app', 'layout')
-    revalidatePath('/app')
-    revalidatePath(`/app/category/${parsed.data.categoryId}`)
+    revalidateTag(categoriesTag(user.id))
     return { ok: true }
   } catch (error) {
     return { ok: false, message: mapCategoryWriteErrorToMessage(error) }
@@ -96,10 +92,9 @@ export async function deleteCategoryAction(
 
   try {
     await deleteCategory({ userId: user.id, categoryId: parsed.data.categoryId })
-    revalidatePath('/app', 'layout')
-    revalidatePath('/app')
-    revalidatePath('/app/all')
-    revalidatePath(`/app/category/${parsed.data.categoryId}`)
+    // Category deletion can also affect resource lists (resources may become uncategorized).
+    revalidateTag(categoriesTag(user.id))
+    revalidateTag(resourcesTag(user.id))
     return { ok: true }
   } catch (error) {
     return { ok: false, message: mapCategoryWriteErrorToMessage(error) }

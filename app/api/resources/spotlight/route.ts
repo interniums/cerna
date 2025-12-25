@@ -21,7 +21,7 @@ type SpotlightResource = {
   favicon_url: string | null
   image_url: string | null
   is_pinned: boolean
-  is_favorite: boolean
+  is_essential: boolean
 }
 
 export async function POST(request: Request) {
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     favicon_url: r.favicon_url,
     image_url: r.image_url,
     is_pinned: r.is_pinned,
-    is_favorite: r.is_favorite,
+    is_essential: r.is_essential,
   }))
 
   return NextResponse.json({ ok: true, items })

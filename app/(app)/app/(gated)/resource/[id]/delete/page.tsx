@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-import { confirmDeleteResourceAction } from '@/app/(app)/app/(gated)/resource/[id]/delete/actions'
+import { confirmDeleteResourceAction } from '@/features/resources/actions'
 import { getResourceById } from '@/lib/db/resources'
 import { requireServerUser } from '@/lib/supabase/auth'
 import { Button } from '@/components/ui/button'

@@ -2,6 +2,8 @@
 
 import { useActionState, useCallback, useEffect, useState } from 'react'
 import { Plus } from 'lucide-react'
+import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
 
 import { createCategoryAction, type CategoryActionState } from '@/features/categories/actions'
 import { FormSubmitButton } from '@/components/forms/form-submit-button'
@@ -69,6 +71,7 @@ function NewCategoryDialogBody({ onCreated }: NewCategoryDialogBodyProps) {
 }
 
 export function NewCategoryDialog() {
+  const router = useRouter()
   const [resetKey, setResetKey] = useState(0)
   const [open, setOpen] = useState(false)
 
@@ -82,8 +85,10 @@ export function NewCategoryDialog() {
   }, [handleOpenChange])
 
   const handleCreated = useCallback(() => {
+    toast.success('Category created.')
     handleOpenChange(false)
-  }, [handleOpenChange])
+    router.refresh()
+  }, [handleOpenChange, router])
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>

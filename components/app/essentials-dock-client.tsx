@@ -2,11 +2,14 @@
 
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight, Link2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Link2, Plus } from 'lucide-react'
+import { AnimatePresence, MotionConfig, motion } from 'framer-motion'
 
 import { cn } from '@/lib/utils'
+import type { Category } from '@/lib/db/categories'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { EssentialsAddDialog } from '@/components/app/essentials-add-dialog'
 
 type EssentialsItem = {
   id: string
@@ -29,13 +32,24 @@ function getHost(rawUrl: string) {
   }
 }
 
+function getFaviconServiceUrl(rawUrl: string) {
+  const host = getHost(rawUrl)
+  return `https://www.google.com/s2/favicons?sz=64&domain=${encodeURIComponent(host)}`
+}
+
 function getIconAltText(url: string, title: string | null) {
   const label = getPrimaryText(url, title)
   const host = getHost(url)
   return label === host ? label : `${label} (${host})`
 }
 
-export function EssentialsDockClient({ essentials }: { essentials: EssentialsItem[] }) {
+export function EssentialsDockClient({
+  essentials,
+  categories,
+}: {
+  essentials: EssentialsItem[]
+  categories: Category[]
+}) {
   const viewportRef = useRef<HTMLDivElement | null>(null)
   const pointerIdRef = useRef<number | null>(null)
   const startXRef = useRef(0)
@@ -148,117 +162,157 @@ export function EssentialsDockClient({ essentials }: { essentials: EssentialsIte
     scrollByAmount(220)
   }, [scrollByAmount])
 
+  const layoutTransition = useMemo(() => {
+    return { duration: 0.18, ease: [0.2, 0.8, 0.2, 1] as const }
+  }, [])
+
+  const fadeTransition = useMemo(() => {
+    return { duration: 0.16, ease: [0.2, 0.8, 0.2, 1] as const }
+  }, [])
+
   return (
-    <div className="w-full">
-      <div className="w-full">
-        <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-background/40 shadow-sm backdrop-blur-md supports-backdrop-filter:bg-background/30">
-          {essentials.length === 0 ? (
-            <div className="px-4 py-3">
-              <p className="text-sm text-muted-foreground">
-                Keep your essentials close. Pin the things you open every day.
-              </p>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1 px-1 py-1.5">
-              <Button
-                type="button"
-                size="icon-sm"
-                variant="ghost"
-                className="cerna-hover-control"
-                aria-label="Scroll essentials left"
-                disabled={!canScrollLeft}
-                onClick={handleScrollLeft}
-              >
-                <ChevronLeft aria-hidden="true" />
-              </Button>
+    <div className="flex w-full items-center gap-2">
+      <div className="min-w-0 flex-1">
+        <div className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm backdrop-blur-md supports-backdrop-filter:bg-card/80 dark:border-white/15 dark:shadow-md">
+          <div className="flex min-h-[68px] items-center gap-1 px-1 py-1">
+            <Button
+              type="button"
+              size="icon-sm"
+              variant="ghost"
+              className="cerna-hover-control"
+              aria-label="Scroll essentials left"
+              disabled={!canScrollLeft}
+              onClick={handleScrollLeft}
+            >
+              <ChevronLeft aria-hidden="true" />
+            </Button>
 
-              <div className="relative min-w-0 flex-1">
-                <div
-                  ref={viewportRef}
-                  className={cn(
-                    'cerna-no-scrollbar flex min-w-0 items-center gap-2 overflow-x-auto px-1 py-1.5',
-                    isDragging ? 'cursor-grabbing select-none' : 'cursor-grab'
-                  )}
-                  style={{
-                    touchAction: 'pan-y',
-                    WebkitMaskImage: viewportMaskImage,
-                    maskImage: viewportMaskImage,
-                    WebkitMaskRepeat: 'no-repeat',
-                    maskRepeat: 'no-repeat',
-                    WebkitMaskSize: '100% 100%',
-                    maskSize: '100% 100%',
-                  }}
-                  onScroll={updateScrollAffordances}
-                  onPointerDown={beginDrag}
-                  onPointerMove={updateDrag}
-                  onPointerUp={endDrag}
-                  onPointerCancel={endDrag}
-                  onClickCapture={preventClickAfterDrag}
-                >
-                  {essentials.map((r) => (
-                    <Tooltip key={r.id}>
-                      <TooltipTrigger asChild>
-                        <Link
-                          href={`/app/out/${r.id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          aria-label={`Open ${getIconAltText(r.url, r.title)}`}
-                          className="group shrink-0 rounded-xl p-1.5 outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                          draggable={false}
-                        >
-                          <div className="flex size-11 items-center justify-center overflow-hidden rounded-xl border bg-muted transition-transform motion-reduce:transition-none group-hover:scale-[1.06]">
-                            {r.image_url ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={r.image_url}
-                                alt=""
-                                className="h-full w-full object-cover"
-                                loading="lazy"
-                                referrerPolicy="no-referrer"
-                                draggable={false}
-                              />
-                            ) : r.favicon_url ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={r.favicon_url}
-                                alt=""
-                                className="size-6"
-                                loading="lazy"
-                                referrerPolicy="no-referrer"
-                                draggable={false}
-                              />
-                            ) : (
-                              <Link2 aria-hidden="true" className="size-5 text-muted-foreground" />
-                            )}
-                          </div>
-                        </Link>
-                      </TooltipTrigger>
-                      <TooltipContent sideOffset={8}>
-                        <div className="grid gap-0.5">
-                          <span className="text-sm">{getPrimaryText(r.url, r.title)}</span>
-                          <span className="text-xs text-muted-foreground">{getHost(r.url)}</span>
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  ))}
-                </div>
+            <div className="relative min-w-0 flex-1">
+              <div
+                ref={viewportRef}
+                className={cn(
+                  'cerna-no-scrollbar flex min-w-0 items-center gap-2 overflow-x-auto px-1 py-1',
+                  isDragging ? 'cursor-grabbing select-none' : 'cursor-grab'
+                )}
+                style={{
+                  touchAction: 'pan-y',
+                  WebkitMaskImage: viewportMaskImage,
+                  maskImage: viewportMaskImage,
+                  WebkitMaskRepeat: 'no-repeat',
+                  maskRepeat: 'no-repeat',
+                  WebkitMaskSize: '100% 100%',
+                  maskSize: '100% 100%',
+                }}
+                onScroll={updateScrollAffordances}
+                onPointerDown={beginDrag}
+                onPointerMove={updateDrag}
+                onPointerUp={endDrag}
+                onPointerCancel={endDrag}
+                onClickCapture={preventClickAfterDrag}
+              >
+                <MotionConfig reducedMotion="user">
+                  <AnimatePresence initial={false} mode="popLayout">
+                    {essentials.map((r) => (
+                      <motion.div
+                        key={r.id}
+                        layout="position"
+                        transition={{ layout: layoutTransition, opacity: fadeTransition }}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        style={{ willChange: 'transform, opacity' }}
+                        className="shrink-0"
+                      >
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Link
+                              href={`/app/out/${r.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              aria-label={`Open ${getIconAltText(r.url, r.title)}`}
+                              className="group block rounded-xl p-1 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50"
+                              draggable={false}
+                            >
+                              <div className="flex size-10 items-center justify-center overflow-hidden rounded-xl border bg-muted transition-transform motion-reduce:transition-none group-hover:scale-[1.06]">
+                                {/* Essentials: keep icons consistent — prefer favicon over OG/image tiles. */}
+                                {r.favicon_url ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={r.favicon_url}
+                                    alt=""
+                                    className="size-5"
+                                    loading="lazy"
+                                    referrerPolicy="no-referrer"
+                                    draggable={false}
+                                  />
+                                ) : r.url ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={getFaviconServiceUrl(r.url)}
+                                    alt=""
+                                    className="size-5"
+                                    loading="lazy"
+                                    referrerPolicy="no-referrer"
+                                    draggable={false}
+                                  />
+                                ) : (
+                                  <Link2 aria-hidden="true" className="size-4 text-muted-foreground" />
+                                )}
+                              </div>
+                            </Link>
+                          </TooltipTrigger>
+                          <TooltipContent sideOffset={8}>
+                            <div className="grid gap-0.5">
+                              <span className="text-sm">{getPrimaryText(r.url, r.title)}</span>
+                              <span className="text-xs text-muted-foreground">{getHost(r.url)}</span>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </MotionConfig>
               </div>
-
-              <Button
-                type="button"
-                size="icon-sm"
-                variant="ghost"
-                className="cerna-hover-control"
-                aria-label="Scroll essentials right"
-                disabled={!canScrollRight}
-                onClick={handleScrollRight}
-              >
-                <ChevronRight aria-hidden="true" />
-              </Button>
             </div>
-          )}
+
+            <Button
+              type="button"
+              size="icon-sm"
+              variant="ghost"
+              className="cerna-hover-control"
+              aria-label="Scroll essentials right"
+              disabled={!canScrollRight}
+              onClick={handleScrollRight}
+            >
+              <ChevronRight aria-hidden="true" />
+            </Button>
+          </div>
         </div>
       </div>
+
+      {/* Add button sits outside the dock capsule (always visible). */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="shrink-0 self-stretch flex items-center">
+            <EssentialsAddDialog
+              categories={categories}
+              triggerLabel="Add an essential"
+              trigger={
+                <Button
+                  type="button"
+                  size="icon-sm"
+                  variant="secondary"
+                  className="h-14 w-14 rounded-xl"
+                  aria-label="Add an essential"
+                >
+                  <Plus aria-hidden="true" className="size-4" />
+                </Button>
+              }
+            />
+          </span>
+        </TooltipTrigger>
+        <TooltipContent sideOffset={8}>Add to essentials</TooltipContent>
+      </Tooltip>
     </div>
   )
 }

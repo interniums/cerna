@@ -1,11 +1,16 @@
-import { listResources } from '@/lib/db/resources'
+import { listCategories } from '@/lib/db/categories'
+import { listEssentialsResources } from '@/lib/db/resources'
 import { EssentialsDockClient } from '@/components/app/essentials-dock-client'
+import { ensureDefaultEssentials } from '@/lib/db/resources'
 
 export async function EssentialsDock({ userId }: { userId: string }) {
-  const essentials = await listResources({ userId, scope: 'pinned', limit: 16 })
+  await ensureDefaultEssentials({ userId })
+  const categories = await listCategories(userId)
+  const essentials = await listEssentialsResources({ userId, limit: 16 })
 
   return (
     <EssentialsDockClient
+      categories={categories}
       essentials={essentials.map((r) => ({
         id: r.id,
         url: r.url,

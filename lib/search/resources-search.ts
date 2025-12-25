@@ -124,9 +124,8 @@ export async function searchResources(input: { userId: string; query: string; li
   return merged
     .slice()
     .sort((a, b) => {
-      // Always prioritize user intent: pinned/favorite first.
+      // Always prioritize user intent: pinned first.
       if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1
-      if (a.is_favorite !== b.is_favorite) return a.is_favorite ? -1 : 1
 
       const aVec = vectorSimById.get(a.id) ?? 0
       const bVec = vectorSimById.get(b.id) ?? 0

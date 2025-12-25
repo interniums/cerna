@@ -10,7 +10,7 @@ export type SpotlightResource = {
   favicon_url: string | null
   image_url: string | null
   is_pinned: boolean
-  is_favorite: boolean
+  is_essential: boolean
 }
 
 type SpotlightStatus = 'idle' | 'loading' | 'ready' | 'error'

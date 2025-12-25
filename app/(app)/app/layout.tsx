@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Home, Settings } from 'lucide-react'
+import { Settings } from 'lucide-react'
 
 import { Container } from '@/components/site/container'
 import { Logo } from '@/components/brand/logo'
@@ -9,6 +9,7 @@ import { CommandPalette } from '@/components/app/command-palette'
 import { Button } from '@/components/ui/button'
 import { OpenSpotlightButton } from '@/components/app/open-spotlight-button'
 import { SpotlightDataProvider } from '@/components/app/spotlight-data'
+import { ThemeToggle } from '@/components/theme/theme-toggle'
 
 export const metadata: Metadata = {
   robots: {
@@ -31,11 +32,7 @@ export default async function AppLayout({
           <Logo href="/app" />
           <nav className="flex items-center gap-4 text-sm">
             <OpenSpotlightButton />
-            <Button asChild variant="ghost" size="icon-sm" aria-label="Dashboard">
-              <Link href="/app">
-                <Home aria-hidden="true" />
-              </Link>
-            </Button>
+            <ThemeToggle />
             <Button asChild variant="ghost" size="icon-sm" aria-label="Settings">
               <Link href="/app/settings">
                 <Settings aria-hidden="true" />

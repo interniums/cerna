@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Logo } from '@/components/brand/logo'
 import { Button } from '@/components/ui/button'
 import { Container } from '@/components/site/container'
+import { ThemeToggle } from '@/components/theme/theme-toggle'
 
 type SiteHeaderProps = {
   primaryCtaHref?: string
@@ -20,6 +21,7 @@ export function SiteHeader({
       <Container className="flex h-14 items-center justify-between">
         <Logo href={logoHref} />
         <nav className="flex items-center gap-2">
+          <ThemeToggle />
           <Button asChild variant="ghost" size="sm">
             <Link href="/pricing">Pricing</Link>
           </Button>
