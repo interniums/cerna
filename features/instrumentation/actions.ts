@@ -7,7 +7,7 @@ import { recordInstrumentationEvent, type InstrumentationEventName } from '@/lib
 
 const AnchorSchema = z.object({
   workflowId: z.string().uuid(),
-  name: z.enum(['view_command_center', 'view_morning']),
+  name: z.enum(['view_dashboard', 'view_command_center', 'view_morning']),
 })
 
 export async function recordAnchorEventAction(formData: FormData) {

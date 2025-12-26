@@ -9,7 +9,7 @@ export function PageViewTracker({
   name,
 }: {
   workflowId: string
-  name: 'view_command_center' | 'view_morning'
+  name: 'view_dashboard' | 'view_command_center' | 'view_morning'
 }) {
   const formRef = useRef<HTMLFormElement | null>(null)
   const sentRef = useRef(false)

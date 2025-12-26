@@ -30,7 +30,7 @@ export async function startFocusSessionAction(_prev: FocusActionState, formData:
     const anchor = await getLatestInstrumentationEvent({
       userId: user.id,
       workflowId: parsed.data.workflowId,
-      names: ['view_command_center', 'view_morning'],
+      names: ['view_dashboard', 'view_command_center', 'view_morning'],
     }).catch(() => null)
 
     const nowMs = Date.now()

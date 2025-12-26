@@ -3,6 +3,7 @@ import 'server-only'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export type InstrumentationEventName =
+  | 'view_dashboard'
   | 'view_command_center'
   | 'view_morning'
   | 'task_created'

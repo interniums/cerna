@@ -1,23 +1,31 @@
-import { NewResourceDialog } from '@/components/app/new-resource-dialog'
 import { ScrollYFade } from '@/components/ui/scroll-y-fade'
 import { Separator } from '@/components/ui/separator'
-import { listCategories } from '@/lib/db/categories'
-import { listResources } from '@/lib/db/resources'
 import { requireServerUser } from '@/lib/supabase/auth'
-import { ResourceList } from '@/features/resources/components/resource-list'
+import { listTasks } from '@/lib/db/tasks'
+import { CommandCenterClient } from '@/features/command-center/components/command-center-client'
+import { PageViewTracker } from '@/features/instrumentation/components/page-view-tracker'
+import { z } from 'zod'
 
 type WorkflowHomePageProps = {
   params: Promise<{ workflowId: string }>
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
 }
 
-export default async function WorkflowHomePage({ params }: WorkflowHomePageProps) {
+function firstString(v: string | string[] | undefined) {
+  return Array.isArray(v) ? v[0] : v
+}
+
+export default async function WorkflowHomePage({ params, searchParams }: WorkflowHomePageProps) {
   const user = await requireServerUser()
   const { workflowId } = await params
 
-  const [categories, pinned, recent] = await Promise.all([
-    listCategories({ userId: user.id, workflowId }),
-    listResources({ userId: user.id, workflowId, scope: 'pinned', limit: 8 }),
-    listResources({ userId: user.id, workflowId, scope: 'all', mode: 'recent', limit: 8 }),
+  const sp = (await searchParams) ?? {}
+  const focusTaskIdRaw = firstString(sp.focusTaskId)
+  const focusTaskId = focusTaskIdRaw && z.string().uuid().safeParse(focusTaskIdRaw).success ? focusTaskIdRaw : undefined
+
+  const [openTasks, doneTasks] = await Promise.all([
+    listTasks({ userId: user.id, workflowId, scope: 'open' }),
+    listTasks({ userId: user.id, workflowId, scope: 'done' }),
   ])
 
   return (
@@ -31,28 +39,18 @@ export default async function WorkflowHomePage({ params }: WorkflowHomePageProps
       </div>
 
       <div className="relative flex-1 min-h-0">
-        <ScrollYFade className="h-full" viewportClassName="pr-4 pb-40">
-          <div className="grid gap-6 pt-4 pb-4">
-            <div className="grid gap-3">
-              <h2 className="text-sm font-semibold tracking-tight">Pinned</h2>
-              <ResourceList resources={pinned} />
-            </div>
-
-            <div className="grid gap-3">
-              <h2 className="text-sm font-semibold tracking-tight">Recent</h2>
-              <ResourceList resources={recent} />
-            </div>
+        <ScrollYFade className="h-full" viewportClassName="pr-4 pb-16">
+          <div className="pt-4 pb-4">
+            <PageViewTracker workflowId={workflowId} name="view_dashboard" />
+            <CommandCenterClient
+              workflowId={workflowId}
+              openTasks={openTasks}
+              doneTasks={doneTasks}
+              initialFocusTaskId={focusTaskId}
+            />
           </div>
         </ScrollYFade>
-
-        <div className="pointer-events-none absolute inset-x-0 -bottom-6 pr-4">
-          <div className="pointer-events-auto pt-12 pb-2 bg-linear-to-t from-background via-background/80 to-transparent">
-            <NewResourceDialog categories={categories} workflowId={workflowId} trigger="wide" />
-          </div>
-        </div>
       </div>
     </div>
   )
 }
-
-

@@ -46,7 +46,7 @@ export function ScrollYFade({ className, viewportClassName, children }: ScrollYF
 
   return (
     <div className={cn('relative flex min-h-0 flex-col', className)}>
-      <div ref={viewportRef} onScroll={handleScroll} className={cn('h-full overflow-y-auto', viewportClassName)}>
+      <div ref={viewportRef} onScroll={handleScroll} className={cn('h-full overflow-y-auto overflow-x-hidden', viewportClassName)}>
         {children}
       </div>
       {showBottomFade ? (

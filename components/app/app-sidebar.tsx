@@ -27,9 +27,9 @@ export async function AppSidebar({ userId, workflowId }: AppSidebarProps) {
       <div className="mt-3 grid gap-1">
         <AppNavLink href={`/app/w/${workflowId}`}>Dashboard</AppNavLink>
         <AppNavLink href={`/app/w/${workflowId}/morning`}>Morning</AppNavLink>
-        <AppNavLink href={`/app/w/${workflowId}/command-center`}>Command Center</AppNavLink>
         <AppNavLink href={`/app/w/${workflowId}/pinned`}>Pinned</AppNavLink>
         <AppNavLink href={`/app/w/${workflowId}/all`}>All</AppNavLink>
+        <AppNavLink href={`/app/w/${workflowId}/resources`}>Resources</AppNavLink>
       </div>
 
       <Separator className="my-4" />

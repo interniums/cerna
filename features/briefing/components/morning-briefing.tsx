@@ -29,7 +29,7 @@ export function MorningBriefing({ workflowId, overdue, today, noDue, pinned, rec
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <Button asChild type="button" variant="secondary">
-            <Link href={`/app/w/${workflowId}/command-center`}>Open Command Center</Link>
+            <Link href={`/app/w/${workflowId}`}>Open Dashboard</Link>
           </Button>
         </div>
       </div>
@@ -49,7 +49,7 @@ export function MorningBriefing({ workflowId, overdue, today, noDue, pinned, rec
                   <p className="text-sm font-medium truncate">{suggested.title}</p>
                   <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
                     <Button asChild type="button" variant="secondary">
-                      <Link href={`/app/w/${workflowId}/command-center?focusTaskId=${encodeURIComponent(suggested.id)}`}>
+                      <Link href={`/app/w/${workflowId}?focusTaskId=${encodeURIComponent(suggested.id)}`}>
                         Start focus
                       </Link>
                     </Button>

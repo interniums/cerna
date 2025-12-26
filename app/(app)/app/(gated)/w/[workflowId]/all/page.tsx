@@ -1,4 +1,5 @@
 import { NewResourceDialog } from '@/components/app/new-resource-dialog'
+import { Separator } from '@/components/ui/separator'
 import { listCategories } from '@/lib/db/categories'
 import { listResources } from '@/lib/db/resources'
 import { requireServerUser } from '@/lib/supabase/auth'
@@ -13,12 +14,11 @@ export default async function WorkflowAllResourcesPage({ params }: WorkflowAllRe
   const user = await requireServerUser()
   const { workflowId } = await params
 
-  const [categories, resources] = await Promise.all([
+  const [categories, pinned, recent] = await Promise.all([
     listCategories({ userId: user.id, workflowId }),
-    listResources({ userId: user.id, workflowId, scope: 'all' }),
+    listResources({ userId: user.id, workflowId, scope: 'pinned', limit: 8 }),
+    listResources({ userId: user.id, workflowId, scope: 'all', mode: 'recent', limit: 8 }),
   ])
-  const pinned = resources.filter((r) => r.is_pinned)
-  const other = resources.filter((r) => !r.is_pinned)
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
@@ -26,30 +26,22 @@ export default async function WorkflowAllResourcesPage({ params }: WorkflowAllRe
         <h1 className="text-2xl font-semibold tracking-tight">All</h1>
       </div>
 
+      <div className="pr-4">
+        <Separator />
+      </div>
+
       <div className="relative flex-1 min-h-0">
         <ScrollYFade className="h-full" viewportClassName="pr-4 pb-40">
           <div className="grid gap-6 pt-4 pb-4">
-            {resources.length === 0 ? (
-              <ResourceList resources={resources} />
-            ) : pinned.length > 0 && other.length > 0 ? (
-              <div className="grid gap-4">
-                <div className="grid gap-3">
-                  <h2 className="text-sm font-semibold tracking-tight">Pinned</h2>
-                  <ResourceList resources={pinned} />
-                </div>
-                <div className="grid gap-3">
-                  <h2 className="text-sm font-semibold tracking-tight">Other</h2>
-                  <ResourceList resources={other} />
-                </div>
-              </div>
-            ) : pinned.length > 0 ? (
-              <div className="grid gap-3">
-                <h2 className="text-sm font-semibold tracking-tight">Pinned</h2>
-                <ResourceList resources={pinned} />
-              </div>
-            ) : (
-              <ResourceList resources={other} />
-            )}
+            <div className="grid gap-3">
+              <h2 className="text-sm font-semibold tracking-tight">Pinned</h2>
+              <ResourceList resources={pinned} />
+            </div>
+
+            <div className="grid gap-3">
+              <h2 className="text-sm font-semibold tracking-tight">Recent</h2>
+              <ResourceList resources={recent} />
+            </div>
           </div>
         </ScrollYFade>
 

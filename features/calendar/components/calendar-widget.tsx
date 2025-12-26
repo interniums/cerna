@@ -151,12 +151,12 @@ export function CalendarWidget({ workflowId }: { workflowId: string }) {
             <p className="text-sm text-muted-foreground">Not connected.</p>
             <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
               <Button asChild type="button" variant="secondary">
-                <Link href={`/api/google-calendar/connect?returnTo=${encodeURIComponent(`/app/w/${workflowId}/command-center`)}`}>
+                <Link href={`/api/google-calendar/connect?returnTo=${encodeURIComponent(`/app/w/${workflowId}`)}`}>
                   Connect Google
                 </Link>
               </Button>
               <Button asChild type="button" variant="secondary">
-                <Link href={`/api/microsoft-calendar/connect?returnTo=${encodeURIComponent(`/app/w/${workflowId}/command-center`)}`}>
+                <Link href={`/api/microsoft-calendar/connect?returnTo=${encodeURIComponent(`/app/w/${workflowId}`)}`}>
                   Connect Microsoft
                 </Link>
               </Button>
@@ -237,7 +237,7 @@ export function CalendarWidget({ workflowId }: { workflowId: string }) {
                         <Button asChild type="button" variant="secondary" className="h-9 w-full justify-start">
                           <Link
                             href={`/${a.provider === 'microsoft' ? 'api/microsoft-calendar/connect' : 'api/google-calendar/connect'}?returnTo=${encodeURIComponent(
-                              `/app/w/${workflowId}/command-center`
+                              `/app/w/${workflowId}`
                             )}`}
                           >
                             Reconnect
@@ -287,12 +287,12 @@ export function CalendarWidget({ workflowId }: { workflowId: string }) {
 
             <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
               <Button asChild type="button" variant="secondary">
-                <Link href={`/api/google-calendar/connect?returnTo=${encodeURIComponent(`/app/w/${workflowId}/command-center`)}`}>
+                <Link href={`/api/google-calendar/connect?returnTo=${encodeURIComponent(`/app/w/${workflowId}`)}`}>
                   Connect Google
                 </Link>
               </Button>
               <Button asChild type="button" variant="secondary">
-                <Link href={`/api/microsoft-calendar/connect?returnTo=${encodeURIComponent(`/app/w/${workflowId}/command-center`)}`}>
+                <Link href={`/api/microsoft-calendar/connect?returnTo=${encodeURIComponent(`/app/w/${workflowId}`)}`}>
                   Connect Microsoft
                 </Link>
               </Button>
