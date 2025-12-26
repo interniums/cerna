@@ -1,5 +1,6 @@
 import { AppSidebar } from '@/components/app/app-sidebar'
 import { EssentialsDock } from '@/components/app/essentials-dock'
+import { UndoToast } from '@/features/resources/components/undo-toast'
 import { requireActiveEntitlement } from '@/lib/billing/entitlements'
 import { requireServerUser } from '@/lib/supabase/auth'
 
@@ -19,6 +20,7 @@ export default async function GatedAppLayout({
         <div className="mb-6 pr-4">
           <EssentialsDock userId={user.id} />
         </div>
+        <UndoToast />
         {children}
       </div>
       <div className="hidden sm:block" aria-hidden="true" />

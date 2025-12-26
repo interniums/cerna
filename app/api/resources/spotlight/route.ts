@@ -38,7 +38,7 @@ export async function POST(request: Request) {
 
   const resources = q
     ? await searchResources({ userId: user.id, query: q, limit })
-    : await listResources({ userId: user.id, scope: 'all', limit })
+    : await listResources({ userId: user.id, scope: 'all', mode: 'recent', limit })
 
   const items: SpotlightResource[] = resources.map((r) => ({
     id: r.id,

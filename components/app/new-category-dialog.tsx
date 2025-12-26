@@ -36,8 +36,8 @@ function NewCategoryDialogBody({ onCreated }: NewCategoryDialogBodyProps) {
   return (
     <DialogContent>
       <DialogHeader>
-        <DialogTitle>New category</DialogTitle>
-        <DialogDescription className="sr-only">Create a new category for your library.</DialogDescription>
+        <DialogTitle>New section</DialogTitle>
+        <DialogDescription className="sr-only">Create a new section for your library.</DialogDescription>
       </DialogHeader>
       <form action={formAction} className="grid gap-4">
         <div className="grid gap-2">
@@ -85,7 +85,7 @@ export function NewCategoryDialog() {
   }, [handleOpenChange])
 
   const handleCreated = useCallback(() => {
-    toast.success('Category created.')
+    toast.success('Section created.')
     handleOpenChange(false)
     router.refresh()
   }, [handleOpenChange, router])
@@ -98,7 +98,7 @@ export function NewCategoryDialog() {
             type="button"
             variant="ghost"
             size="icon-sm"
-            aria-label="New category"
+            aria-label="New section"
             aria-haspopup="dialog"
             aria-expanded={open}
             onClick={handleTriggerClick}
@@ -106,7 +106,7 @@ export function NewCategoryDialog() {
             <Plus aria-hidden="true" />
           </Button>
         </TooltipTrigger>
-        <TooltipContent sideOffset={6}>New category</TooltipContent>
+        <TooltipContent sideOffset={6}>New section</TooltipContent>
       </Tooltip>
       <NewCategoryDialogBody key={resetKey} onCreated={handleCreated} />
     </Dialog>

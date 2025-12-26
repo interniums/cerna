@@ -3,6 +3,7 @@ import 'server-only'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { Resource } from '@/lib/db/resources'
 import { embedText } from '@/lib/ai/embeddings'
+import { compareResourcesDefault } from '@/lib/resources/sort'
 
 type VectorMatchRow = {
   id: string
@@ -141,9 +142,9 @@ export async function searchResources(input: { userId: string; query: string; li
 
       if (a.visit_count !== b.visit_count) return b.visit_count - a.visit_count
 
-      const aUpdated = Date.parse(a.updated_at)
-      const bUpdated = Date.parse(b.updated_at)
-      return bUpdated - aUpdated
+      // Final stable tie-break (intentionally avoids `updated_at` so edits / essentials toggles
+      // don't reshuffle results between renders when relevance ties).
+      return compareResourcesDefault(a, b)
     })
     .slice(0, limit)
 }

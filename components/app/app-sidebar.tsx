@@ -15,7 +15,6 @@ export async function AppSidebar({ userId }: AppSidebarProps) {
     <aside className="w-full sm:w-60">
       <div className="flex items-center justify-between">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Library</p>
-        <NewCategoryDialog />
       </div>
 
       <div className="mt-3 grid gap-1">
@@ -26,10 +25,13 @@ export async function AppSidebar({ userId }: AppSidebarProps) {
 
       <Separator className="my-4" />
 
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Categories</p>
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Sections</p>
+        <NewCategoryDialog />
+      </div>
       <div className="mt-3 grid gap-1">
         {categories.length === 0 ? (
-          <p className="px-2 text-sm text-muted-foreground">No categories yet.</p>
+          <p className="px-2 text-sm text-muted-foreground">No sections yet.</p>
         ) : (
           categories.map((c) => <CategoryNavItem key={c.id} id={c.id} name={c.name} />)
         )}

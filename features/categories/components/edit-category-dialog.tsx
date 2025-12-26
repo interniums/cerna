@@ -94,6 +94,9 @@ function DeleteForm({ categoryId, onDeleted }: { categoryId: string; onDeleted: 
           className="font-semibold uppercase tracking-wide"
           idleText="Delete category"
           pendingText="Deleting…"
+          idleIcon={<Trash2 aria-hidden="true" className="mr-2 size-4" />}
+          hideLabel
+          aria-label="Delete category"
         />
         <DialogClose asChild>
           <Button type="button" variant="secondary">
@@ -134,6 +137,7 @@ export function EditCategoryDialog({ categoryId, initialName }: EditCategoryDial
   const handleCancelDelete = useCallback(() => setConfirmDelete(false), [])
 
   const triggerLabel = useMemo(() => `Edit category ${initialName}`, [initialName])
+  const deleteLabel = useMemo(() => `Delete ${initialName}`, [initialName])
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -152,29 +156,33 @@ export function EditCategoryDialog({ categoryId, initialName }: EditCategoryDial
         <Separator className="my-2" />
 
         <div className="grid gap-2">
-          <p className="text-sm font-medium">Delete category</p>
-          <p className="text-sm text-muted-foreground">
-            Resources will stay saved, but become uncategorized. This can’t be undone.
-          </p>
-
           {confirmDelete ? (
             <>
               <DeleteForm categoryId={categoryId} onDeleted={handleDeleted} />
+              <p className="text-sm text-muted-foreground">
+                Resources will stay saved, but become uncategorized. This can’t be undone.
+              </p>
               <Button type="button" variant="ghost" size="sm" onClick={handleCancelDelete}>
                 Keep category
               </Button>
             </>
           ) : (
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              className="h-12 font-semibold uppercase tracking-wide"
-              onClick={handleStartDelete}
-            >
-              <Trash2 aria-hidden="true" className="size-4" />
-              Delete
-            </Button>
+            <>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                className="h-12 font-semibold uppercase tracking-wide"
+                aria-label={deleteLabel}
+                onClick={handleStartDelete}
+              >
+                <Trash2 aria-hidden="true" className="mr-2 size-4" />
+                Delete
+              </Button>
+              <p className="text-sm text-muted-foreground">
+                Resources will stay saved, but become uncategorized. This can’t be undone.
+              </p>
+            </>
           )}
         </div>
       </DialogContent>

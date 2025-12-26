@@ -2,10 +2,11 @@
 
 import { useActionState, useCallback, useEffect, useId, useMemo, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { MoreHorizontal, Trash2 } from 'lucide-react'
+import { Link2, MoreHorizontal, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import type { Resource } from '@/lib/db/resources'
+import { getResourceFaviconSrc } from '@/lib/url'
 import {
   confirmDeleteResourceAction,
   toggleEssentialStateAction,
@@ -85,9 +86,9 @@ function EditForm({
       ) : null}
 
       <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-        <FormSubmitButton idleText="Save" pendingText="Saving…" />
+        <FormSubmitButton className="w-full sm:w-auto" idleText="Save" pendingText="Saving…" />
         <DialogClose asChild>
-          <Button type="button" variant="secondary">
+          <Button type="button" variant="secondary" className="w-full sm:w-auto">
             Close
           </Button>
         </DialogClose>
@@ -115,7 +116,7 @@ function PinForm({ resourceId, isPinned, onToggled }: { resourceId: string; isPi
 
       <FormSubmitButton
         variant="secondary"
-        className="h-10 justify-start"
+        className="h-10 w-full justify-start"
         idleText={isPinned ? 'Unpin' : 'Pin'}
         pendingText={isPinned ? 'Unpinning…' : 'Pinning…'}
       />
@@ -150,7 +151,7 @@ function EssentialsForm({
 
       <FormSubmitButton
         variant="secondary"
-        className="h-10 justify-start"
+        className="h-10 w-full justify-start"
         idleText={isEssential ? 'Remove from essentials' : 'Add to essentials'}
         pendingText={isEssential ? 'Removing…' : 'Adding…'}
       />
@@ -162,16 +163,16 @@ export function ResourceActionsDialog({ resource }: { resource: Resource }) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const faviconSrc = useMemo(() => getResourceFaviconSrc(resource), [resource])
 
   const [open, setOpen] = useState(false)
-  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const returnTo = useMemo(() => buildReturnTo(pathname, new URLSearchParams(searchParams)), [pathname, searchParams])
   const triggerLabel = useMemo(() => `Open actions for ${getPrimaryText(resource)}`, [resource])
+  const deleteLabel = useMemo(() => `Delete ${getPrimaryText(resource)}`, [resource])
 
   const handleOpenChange = useCallback((nextOpen: boolean) => {
     setOpen(nextOpen)
-    if (!nextOpen) setConfirmDelete(false)
   }, [])
 
   const handleTriggerClick = useCallback(() => {
@@ -196,9 +197,6 @@ export function ResourceActionsDialog({ resource }: { resource: Resource }) {
     router.refresh()
   }, [handleOpenChange, resource.is_essential, router])
 
-  const handleStartDelete = useCallback(() => setConfirmDelete(true), [])
-  const handleCancelDelete = useCallback(() => setConfirmDelete(false), [])
-
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <Button
@@ -212,15 +210,34 @@ export function ResourceActionsDialog({ resource }: { resource: Resource }) {
         <MoreHorizontal aria-hidden="true" className="size-4" />
       </Button>
 
-      <DialogContent>
+      <DialogContent className="max-h-[85dvh]">
         <DialogHeader>
           <DialogTitle>Resource</DialogTitle>
           <DialogDescription className="sr-only">Edit, pin, add to essentials, or delete this resource.</DialogDescription>
         </DialogHeader>
 
-        <div className="rounded-md border border-border/60 p-3">
-          <p className="truncate text-sm font-medium">{getPrimaryText(resource)}</p>
-          <p className="truncate text-xs text-muted-foreground">{resource.url}</p>
+        <div className="flex min-w-0 items-center gap-3 overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
+          <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted ml-3">
+            {faviconSrc ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={faviconSrc}
+                alt=""
+                className="size-5"
+                loading="lazy"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <Link2 aria-hidden="true" className="size-4 text-muted-foreground" />
+            )}
+          </div>
+
+          <div className="min-w-0 flex-1 py-3 pr-3">
+            <p className="truncate text-sm font-medium">{getPrimaryText(resource)}</p>
+            <p className="truncate text-xs text-muted-foreground" title={resource.url}>
+              {resource.url}
+            </p>
+          </div>
         </div>
 
         <EditForm
@@ -251,35 +268,17 @@ export function ResourceActionsDialog({ resource }: { resource: Resource }) {
         <Separator className="my-2" />
 
         <div className="grid gap-2">
-          <p className="text-sm font-medium">Delete</p>
-          <p className="text-sm text-muted-foreground">You can undo right after.</p>
-
-          {confirmDelete ? (
-            <>
-              <form action={confirmDeleteResourceAction.bind(null, resource.id, returnTo)} className="grid gap-2">
-                <FormSubmitButton
-                  variant="destructive"
-                  className="h-12 font-semibold uppercase tracking-wide"
-                  idleText="Delete resource"
-                  pendingText="Deleting…"
-                />
-              </form>
-              <Button type="button" variant="ghost" size="sm" onClick={handleCancelDelete}>
-                Keep resource
-              </Button>
-            </>
-          ) : (
-            <Button
-              type="button"
+          <form action={confirmDeleteResourceAction.bind(null, resource.id, returnTo)} className="grid gap-2">
+            <FormSubmitButton
               variant="destructive"
-              size="sm"
               className="h-12 font-semibold uppercase tracking-wide"
-              onClick={handleStartDelete}
-            >
-              <Trash2 aria-hidden="true" className="size-4" />
-              Delete
-            </Button>
-          )}
+              idleText="Delete"
+              pendingText="Deleting…"
+              idleIcon={<Trash2 aria-hidden="true" className="mr-2 size-4" />}
+              aria-label={deleteLabel}
+            />
+            <p className="text-sm text-muted-foreground">Undo is available for 10 seconds.</p>
+          </form>
         </div>
       </DialogContent>
     </Dialog>

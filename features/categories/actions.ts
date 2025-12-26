@@ -3,11 +3,19 @@
 import { revalidateTag } from 'next/cache'
 import { z } from 'zod'
 
-import { CategoryIdSchema, CreateCategorySchema, createCategory, deleteCategory, renameCategory } from '@/lib/db/categories'
+import {
+  CategoryIdSchema,
+  CreateCategorySchema,
+  createCategory,
+  deleteCategory,
+  renameCategory,
+} from '@/lib/db/categories'
 import { categoriesTag, resourcesTag } from '@/lib/cache/tags'
 import { requireServerUser } from '@/lib/supabase/auth'
 
 export type CategoryActionState = { ok: true } | { ok: false; message: string }
+
+const tagRevalidateProfile = { expire: 0 } as const
 
 function getErrorMessage(error: unknown) {
   if (!error || typeof error !== 'object') return null
@@ -40,7 +48,7 @@ export async function createCategoryAction(
 
   try {
     await createCategory(user.id, parsed.data.name)
-    revalidateTag(categoriesTag(user.id))
+    revalidateTag(categoriesTag(user.id), tagRevalidateProfile)
     return { ok: true }
   } catch (error) {
     return { ok: false, message: mapCategoryWriteErrorToMessage(error) }
@@ -67,7 +75,7 @@ export async function renameCategoryAction(
 
   try {
     await renameCategory({ userId: user.id, categoryId: parsed.data.categoryId, name: parsed.data.name })
-    revalidateTag(categoriesTag(user.id))
+    revalidateTag(categoriesTag(user.id), tagRevalidateProfile)
     return { ok: true }
   } catch (error) {
     return { ok: false, message: mapCategoryWriteErrorToMessage(error) }
@@ -93,8 +101,8 @@ export async function deleteCategoryAction(
   try {
     await deleteCategory({ userId: user.id, categoryId: parsed.data.categoryId })
     // Category deletion can also affect resource lists (resources may become uncategorized).
-    revalidateTag(categoriesTag(user.id))
-    revalidateTag(resourcesTag(user.id))
+    revalidateTag(categoriesTag(user.id), tagRevalidateProfile)
+    revalidateTag(resourcesTag(user.id), tagRevalidateProfile)
     return { ok: true }
   } catch (error) {
     return { ok: false, message: mapCategoryWriteErrorToMessage(error) }

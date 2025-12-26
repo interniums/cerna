@@ -45,6 +45,7 @@ export async function listResources(input: {
   scope: 'all' | 'pinned' | 'category'
   categoryId?: string
   limit?: number
+  mode?: 'default' | 'recent'
 }) {
   // NOTE: Supabase server client reads auth cookies. Next.js forbids accessing dynamic sources
   // (like `cookies()`) inside `unstable_cache`, so we must create the client outside the cache scope.
@@ -52,18 +53,30 @@ export async function listResources(input: {
 
   const cached = unstable_cache(
     async () => {
+      const mode = input.mode ?? 'default'
       let query = supabase.from('resources').select('*').eq('user_id', input.userId).is('deleted_at', null)
 
       if (input.scope === 'pinned') query = query.eq('is_pinned', true)
       if (input.scope === 'category') query = query.eq('category_id', input.categoryId ?? '')
+      if (mode === 'recent') query = query.eq('is_pinned', false)
 
-      const res = await query
-        .order('is_pinned', { ascending: false })
-        .order('pinned_at', { ascending: true, nullsFirst: false })
-        .order('last_visited_at', { ascending: false, nullsFirst: false })
-        .order('visit_count', { ascending: false })
-        .order('updated_at', { ascending: false })
-        .limit(input.limit ?? 100)
+      // Canonical ordering (keep stable; do NOT include `updated_at`).
+      if (mode === 'recent') {
+        query = query
+          .order('last_visited_at', { ascending: false, nullsFirst: false })
+          .order('created_at', { ascending: false })
+          .order('id', { ascending: true })
+      } else {
+        query = query
+          .order('is_pinned', { ascending: false })
+          .order('pinned_at', { ascending: true, nullsFirst: false })
+          .order('last_visited_at', { ascending: false, nullsFirst: false })
+          .order('visit_count', { ascending: false })
+          .order('created_at', { ascending: false })
+          .order('id', { ascending: true })
+      }
+
+      const res = await query.limit(input.limit ?? 100)
 
       if (res.error) throw res.error
       return (res.data ?? []) as Resource[]

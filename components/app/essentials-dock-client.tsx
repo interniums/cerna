@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Link2, Plus } from 'lucide-react'
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion'
 
 import { cn } from '@/lib/utils'
+import { getHost, getResourceFaviconSrc } from '@/lib/url'
 import type { Category } from '@/lib/db/categories'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -22,19 +23,6 @@ type EssentialsItem = {
 function getPrimaryText(url: string, title: string | null) {
   const t = title?.trim()
   return t ? t : url
-}
-
-function getHost(rawUrl: string) {
-  try {
-    return new URL(rawUrl).hostname.replace(/^www\./, '')
-  } catch {
-    return rawUrl.replace(/^https?:\/\//, '').split(/[/?#]/)[0] || rawUrl
-  }
-}
-
-function getFaviconServiceUrl(rawUrl: string) {
-  const host = getHost(rawUrl)
-  return `https://www.google.com/s2/favicons?sz=64&domain=${encodeURIComponent(host)}`
 }
 
 function getIconAltText(url: string, title: string | null) {
@@ -235,29 +223,22 @@ export function EssentialsDockClient({
                             >
                               <div className="flex size-10 items-center justify-center overflow-hidden rounded-xl border bg-muted transition-transform motion-reduce:transition-none group-hover:scale-[1.06]">
                                 {/* Essentials: keep icons consistent — prefer favicon over OG/image tiles. */}
-                                {r.favicon_url ? (
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  <img
-                                    src={r.favicon_url}
-                                    alt=""
-                                    className="size-5"
-                                    loading="lazy"
-                                    referrerPolicy="no-referrer"
-                                    draggable={false}
-                                  />
-                                ) : r.url ? (
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  <img
-                                    src={getFaviconServiceUrl(r.url)}
-                                    alt=""
-                                    className="size-5"
-                                    loading="lazy"
-                                    referrerPolicy="no-referrer"
-                                    draggable={false}
-                                  />
-                                ) : (
-                                  <Link2 aria-hidden="true" className="size-4 text-muted-foreground" />
-                                )}
+                                {(() => {
+                                  const faviconSrc = getResourceFaviconSrc(r)
+                                  return faviconSrc ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img
+                                      src={faviconSrc}
+                                      alt=""
+                                      className="size-5"
+                                      loading="lazy"
+                                      referrerPolicy="no-referrer"
+                                      draggable={false}
+                                    />
+                                  ) : (
+                                    <Link2 aria-hidden="true" className="size-4 text-muted-foreground" />
+                                  )
+                                })()}
                               </div>
                             </Link>
                           </TooltipTrigger>
@@ -291,28 +272,24 @@ export function EssentialsDockClient({
       </div>
 
       {/* Add button sits outside the dock capsule (always visible). */}
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span className="shrink-0 self-stretch flex items-center">
-            <EssentialsAddDialog
-              categories={categories}
-              triggerLabel="Add an essential"
-              trigger={
-                <Button
-                  type="button"
-                  size="icon-sm"
-                  variant="secondary"
-                  className="h-14 w-14 rounded-xl"
-                  aria-label="Add an essential"
-                >
-                  <Plus aria-hidden="true" className="size-4" />
-                </Button>
-              }
-            />
-          </span>
-        </TooltipTrigger>
-        <TooltipContent sideOffset={8}>Add to essentials</TooltipContent>
-      </Tooltip>
+      <div className="shrink-0">
+        <EssentialsAddDialog
+          categories={categories}
+          triggerLabel="Add an essential"
+          triggerTooltip="Add to essentials"
+          trigger={
+            <Button
+              type="button"
+              size="icon-sm"
+              variant="secondary"
+              className="h-14 w-14 rounded-xl"
+              aria-label="Add an essential"
+            >
+              <Plus aria-hidden="true" className="size-4" />
+            </Button>
+          }
+        />
+      </div>
     </div>
   )
 }

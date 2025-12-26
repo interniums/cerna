@@ -11,10 +11,12 @@ export function resourcesScopeTag(input: {
   scope: 'all' | 'pinned' | 'category'
   categoryId?: string
   limit?: number
+  mode?: 'default' | 'recent'
 }) {
   const categoryPart = input.scope === 'category' ? input.categoryId ?? 'missing' : '_'
   const limitPart = input.limit ? String(input.limit) : '_'
-  return `resources:${input.userId}:${input.scope}:${categoryPart}:${limitPart}`
+  const modePart = input.mode ? input.mode : '_'
+  return `resources:${input.userId}:${input.scope}:${categoryPart}:${limitPart}:${modePart}`
 }
 
 export function resourceByIdTag(userId: string, resourceId: string) {
