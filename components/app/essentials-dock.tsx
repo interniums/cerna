@@ -3,14 +3,15 @@ import { listEssentialsResources } from '@/lib/db/resources'
 import { EssentialsDockClient } from '@/components/app/essentials-dock-client'
 import { ensureDefaultEssentials } from '@/lib/db/resources'
 
-export async function EssentialsDock({ userId }: { userId: string }) {
-  await ensureDefaultEssentials({ userId })
-  const categories = await listCategories(userId)
-  const essentials = await listEssentialsResources({ userId, limit: 16 })
+export async function EssentialsDock({ userId, workflowId }: { userId: string; workflowId: string }) {
+  await ensureDefaultEssentials({ userId, workflowId })
+  const categories = await listCategories({ userId, workflowId })
+  const essentials = await listEssentialsResources({ userId, workflowId, limit: 16 })
 
   return (
     <EssentialsDockClient
       categories={categories}
+      workflowId={workflowId}
       essentials={essentials.map((r) => ({
         id: r.id,
         url: r.url,

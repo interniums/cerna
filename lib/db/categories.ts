@@ -9,6 +9,7 @@ import { categoriesTag } from '@/lib/cache/tags'
 export type Category = {
   id: string
   user_id: string
+  workflow_id: string
   name: string
   sort_order: number
   created_at: string
@@ -20,7 +21,7 @@ export const CreateCategorySchema = z.object({
 
 export const CategoryIdSchema = z.string().uuid()
 
-export async function listCategories(userId: string) {
+export async function listCategories(input: { userId: string; workflowId: string }) {
   // NOTE: Supabase server client reads auth cookies. Next.js forbids accessing dynamic sources
   // (like `cookies()`) inside `unstable_cache`, so we must create the client outside the cache scope.
   const supabase = await createSupabaseServerClient()
@@ -30,23 +31,41 @@ export async function listCategories(userId: string) {
       const res = await supabase
         .from('categories')
         .select('*')
-        .eq('user_id', userId)
+        .eq('user_id', input.userId)
+        .eq('workflow_id', input.workflowId)
         .order('sort_order', { ascending: true })
         .order('created_at', { ascending: true })
 
       if (res.error) throw res.error
       return (res.data ?? []) as Category[]
     },
-    ['listCategories', userId],
-    { revalidate: 60, tags: [categoriesTag(userId)] }
+    ['listCategories', input.userId, input.workflowId],
+    { revalidate: 60, tags: [categoriesTag(input.userId)] }
   )
 
   return cached()
 }
 
-export async function createCategory(userId: string, name: string) {
+export async function createCategory(input: { userId: string; workflowId: string; name: string }) {
   const supabase = await createSupabaseServerClient()
-  const res = await supabase.from('categories').insert({ user_id: userId, name }).select('*').single()
+  const res = await supabase
+    .from('categories')
+    .insert({ user_id: input.userId, workflow_id: input.workflowId, name: input.name })
+    .select('*')
+    .single()
+
+  if (res.error) throw res.error
+  return res.data as Category
+}
+
+export async function getCategoryById(input: { userId: string; categoryId: string }) {
+  const supabase = await createSupabaseServerClient()
+  const res = await supabase
+    .from('categories')
+    .select('*')
+    .eq('id', input.categoryId)
+    .eq('user_id', input.userId)
+    .single()
 
   if (res.error) throw res.error
   return res.data as Category
@@ -66,9 +85,25 @@ export async function renameCategory(input: { userId: string; categoryId: string
   return res.data as Category
 }
 
-export async function deleteCategory(input: { userId: string; categoryId: string }) {
+export async function deleteCategory(input: { userId: string; workflowId: string; categoryId: string }) {
   const supabase = await createSupabaseServerClient()
-  const res = await supabase.from('categories').delete().eq('id', input.categoryId).eq('user_id', input.userId)
+
+  // Keep prior behavior (category deletion makes resources uncategorized).
+  // Required now that category/workflow integrity is enforced via composite FK.
+  const uncategorize = await supabase
+    .from('resources')
+    .update({ category_id: null })
+    .eq('user_id', input.userId)
+    .eq('workflow_id', input.workflowId)
+    .eq('category_id', input.categoryId)
+  if (uncategorize.error) throw uncategorize.error
+
+  const res = await supabase
+    .from('categories')
+    .delete()
+    .eq('id', input.categoryId)
+    .eq('user_id', input.userId)
+    .eq('workflow_id', input.workflowId)
 
   if (res.error) throw res.error
 }

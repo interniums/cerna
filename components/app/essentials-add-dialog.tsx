@@ -142,7 +142,7 @@ function ChooseExistingResultsList({
   )
 }
 
-function AddNewTab({ categories, onDone }: { categories: Category[]; onDone: () => void }) {
+function AddNewTab({ workflowId, categories, onDone }: { workflowId: string; categories: Category[]; onDone: () => void }) {
   return (
     <ResourceCreateForm
       action={createEssentialResourceAction}
@@ -152,6 +152,7 @@ function AddNewTab({ categories, onDone }: { categories: Category[]; onDone: () 
       submitPendingText="Adding…"
       successToast="Added to essentials."
       onDone={onDone}
+      hiddenInputs={<input type="hidden" name="workflowId" value={workflowId} />}
       extraFields={<SectionSelect categories={categories} defaultValue="" id="essential-category" label="Section" />}
       urlInputId="essential-url"
       titleInputId="essential-title"
@@ -161,7 +162,7 @@ function AddNewTab({ categories, onDone }: { categories: Category[]; onDone: () 
   )
 }
 
-function ChooseExistingTab({ onDone }: { onDone: () => void }) {
+function ChooseExistingTab({ workflowId, onDone }: { workflowId: string; onDone: () => void }) {
   const [query, setQuery] = useState('')
   const [items, setItems] = useState<SpotlightResource[]>([])
   const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
@@ -198,7 +199,7 @@ function ChooseExistingTab({ onDone }: { onDone: () => void }) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       signal: controller.signal,
-      body: JSON.stringify({ q: trimmed, limit }),
+      body: JSON.stringify({ workflowId, q: trimmed, limit }),
     })
       .then(async (res) => {
         if (!res.ok) throw new Error('Bad response')
@@ -213,7 +214,7 @@ function ChooseExistingTab({ onDone }: { onDone: () => void }) {
       })
 
     return () => controller.abort()
-  }, [limit, trimmed])
+  }, [limit, trimmed, workflowId])
 
   const list = useMemo(() => {
     const q = trimmed.toLowerCase()
@@ -289,6 +290,7 @@ function ChooseExistingTab({ onDone }: { onDone: () => void }) {
       </div>
 
       <form action={formAction} className="flex flex-1 min-h-0 flex-col gap-4">
+        <input type="hidden" name="workflowId" value={workflowId} />
         {!state.ok && state.message ? (
           <p className="text-sm text-destructive" role="status" aria-live="polite">
             {state.message}
@@ -335,11 +337,13 @@ function ChooseExistingTab({ onDone }: { onDone: () => void }) {
 
 export function EssentialsAddDialog({
   categories,
+  workflowId,
   triggerLabel = 'Add to essentials',
   triggerTooltip,
   trigger,
 }: {
   categories: Category[]
+  workflowId: string
   triggerLabel?: string
   triggerTooltip?: string
   trigger?: React.ReactElement
@@ -414,10 +418,10 @@ export function EssentialsAddDialog({
 
           <div className="min-h-0 flex-1 pt-4">
             <TabsContent value="choose" className="h-full">
-              <ChooseExistingTab onDone={closeAndRefresh} />
+              <ChooseExistingTab workflowId={workflowId} onDone={closeAndRefresh} />
             </TabsContent>
             <TabsContent value="new" className="h-full">
-              <AddNewTab categories={categories} onDone={closeAndRefresh} />
+              <AddNewTab workflowId={workflowId} categories={categories} onDone={closeAndRefresh} />
             </TabsContent>
           </div>
         </Tabs>

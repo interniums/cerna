@@ -28,7 +28,7 @@ export default async function AppLayout({
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur">
-        <Container className="flex h-14 items-center justify-between">
+        <Container className="flex h-14 max-w-none items-center justify-between">
           <Logo href="/app" />
           <nav className="flex items-center gap-4 text-sm">
             <OpenSpotlightButton />
@@ -42,7 +42,7 @@ export default async function AppLayout({
         </Container>
       </header>
       <main className="flex-1 overflow-hidden">
-        <Container className="flex h-full min-h-0 flex-col py-10">
+        <Container className="flex h-full min-h-0 max-w-none flex-col py-10">
           <div className="flex-1 min-h-0">{children}</div>
         </Container>
       </main>

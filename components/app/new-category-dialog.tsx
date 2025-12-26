@@ -24,9 +24,10 @@ const initialState: CategoryActionState = { ok: false, message: '' }
 
 type NewCategoryDialogBodyProps = {
   onCreated: () => void
+  workflowId: string
 }
 
-function NewCategoryDialogBody({ onCreated }: NewCategoryDialogBodyProps) {
+function NewCategoryDialogBody({ onCreated, workflowId }: NewCategoryDialogBodyProps) {
   const [state, formAction] = useActionState(createCategoryAction, initialState)
 
   useEffect(() => {
@@ -40,6 +41,7 @@ function NewCategoryDialogBody({ onCreated }: NewCategoryDialogBodyProps) {
         <DialogDescription className="sr-only">Create a new section for your library.</DialogDescription>
       </DialogHeader>
       <form action={formAction} className="grid gap-4">
+        <input type="hidden" name="workflowId" value={workflowId} />
         <div className="grid gap-2">
           <Label htmlFor="category-name" className="text-muted-foreground">
             Name
@@ -70,7 +72,7 @@ function NewCategoryDialogBody({ onCreated }: NewCategoryDialogBodyProps) {
   )
 }
 
-export function NewCategoryDialog() {
+export function NewCategoryDialog({ workflowId }: { workflowId: string }) {
   const router = useRouter()
   const [resetKey, setResetKey] = useState(0)
   const [open, setOpen] = useState(false)
@@ -108,7 +110,7 @@ export function NewCategoryDialog() {
         </TooltipTrigger>
         <TooltipContent sideOffset={6}>New section</TooltipContent>
       </Tooltip>
-      <NewCategoryDialogBody key={resetKey} onCreated={handleCreated} />
+      <NewCategoryDialogBody key={resetKey} onCreated={handleCreated} workflowId={workflowId} />
     </Dialog>
   )
 }

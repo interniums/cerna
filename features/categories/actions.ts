@@ -12,6 +12,7 @@ import {
 } from '@/lib/db/categories'
 import { categoriesTag, resourcesTag } from '@/lib/cache/tags'
 import { requireServerUser } from '@/lib/supabase/auth'
+import { getDefaultWorkflowId } from '@/lib/db/workflows'
 
 export type CategoryActionState = { ok: true } | { ok: false; message: string }
 
@@ -45,9 +46,14 @@ export async function createCategoryAction(
   if (!parsed.success) return { ok: false, message: 'Enter a category name.' }
 
   const user = await requireServerUser()
+  const workflowIdRaw = formData.get('workflowId')
+  const workflowId =
+    typeof workflowIdRaw === 'string' && workflowIdRaw.trim()
+      ? workflowIdRaw.trim()
+      : await getDefaultWorkflowId({ userId: user.id })
 
   try {
-    await createCategory(user.id, parsed.data.name)
+    await createCategory({ userId: user.id, workflowId, name: parsed.data.name })
     revalidateTag(categoriesTag(user.id), tagRevalidateProfile)
     return { ok: true }
   } catch (error) {
@@ -84,6 +90,7 @@ export async function renameCategoryAction(
 
 const DeleteCategorySchema = z.object({
   categoryId: CategoryIdSchema,
+  workflowId: z.string().uuid().optional(),
 })
 
 export async function deleteCategoryAction(
@@ -92,14 +99,16 @@ export async function deleteCategoryAction(
 ): Promise<CategoryActionState> {
   const parsed = DeleteCategorySchema.safeParse({
     categoryId: formData.get('categoryId'),
+    workflowId: formData.get('workflowId') || undefined,
   })
 
   if (!parsed.success) return { ok: false, message: 'Missing category.' }
 
   const user = await requireServerUser()
+  const workflowId = parsed.data.workflowId ?? (await getDefaultWorkflowId({ userId: user.id }))
 
   try {
-    await deleteCategory({ userId: user.id, categoryId: parsed.data.categoryId })
+    await deleteCategory({ userId: user.id, workflowId, categoryId: parsed.data.categoryId })
     // Category deletion can also affect resource lists (resources may become uncategorized).
     revalidateTag(categoriesTag(user.id), tagRevalidateProfile)
     revalidateTag(resourcesTag(user.id), tagRevalidateProfile)

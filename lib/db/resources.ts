@@ -9,6 +9,7 @@ import { essentialsTag, resourceByIdTag, resourcesScopeTag, resourcesTag } from 
 export type Resource = {
   id: string
   user_id: string
+  workflow_id: string
   category_id: string | null
   url: string
   title: string | null
@@ -28,6 +29,7 @@ export type Resource = {
 }
 
 export const CreateResourceSchema = z.object({
+  workflowId: z.string().uuid(),
   url: z.string().url().max(2048),
   title: z.string().trim().max(200).optional(),
   notes: z.string().trim().max(2000).optional(),
@@ -42,6 +44,7 @@ export const UpdateResourceSchema = z.object({
 
 export async function listResources(input: {
   userId: string
+  workflowId: string
   scope: 'all' | 'pinned' | 'category'
   categoryId?: string
   limit?: number
@@ -54,7 +57,12 @@ export async function listResources(input: {
   const cached = unstable_cache(
     async () => {
       const mode = input.mode ?? 'default'
-      let query = supabase.from('resources').select('*').eq('user_id', input.userId).is('deleted_at', null)
+      let query = supabase
+        .from('resources')
+        .select('*')
+        .eq('user_id', input.userId)
+        .eq('workflow_id', input.workflowId)
+        .is('deleted_at', null)
 
       if (input.scope === 'pinned') query = query.eq('is_pinned', true)
       if (input.scope === 'category') query = query.eq('category_id', input.categoryId ?? '')
@@ -91,7 +99,7 @@ export async function listResources(input: {
   return cached()
 }
 
-export async function listEssentialsResources(input: { userId: string; limit?: number }) {
+export async function listEssentialsResources(input: { userId: string; workflowId: string; limit?: number }) {
   // NOTE: Supabase server client reads auth cookies. Next.js forbids accessing dynamic sources
   // (like `cookies()`) inside `unstable_cache`, so we must create the client outside the cache scope.
   const supabase = await createSupabaseServerClient()
@@ -104,6 +112,7 @@ export async function listEssentialsResources(input: { userId: string; limit?: n
         .from('resources')
         .select('*')
         .eq('user_id', input.userId)
+        .eq('workflow_id', input.workflowId)
         .is('deleted_at', null)
         .eq('is_essential', true)
         .order('essential_at', { ascending: false, nullsFirst: false })
@@ -116,18 +125,24 @@ export async function listEssentialsResources(input: { userId: string; limit?: n
       // Display oldest → newest within this slice so newly pinned items appear on the right.
       return rows.reverse()
     },
-    ['listEssentialsResources', input.userId, String(limit)],
-    { revalidate: 30, tags: [resourcesTag(input.userId), essentialsTag(input.userId, limit)] }
+    ['listEssentialsResources', input.userId, input.workflowId, String(limit)],
+    { revalidate: 30, tags: [resourcesTag(input.userId), essentialsTag(input.userId, input.workflowId, limit)] }
   )
 
   return cached()
 }
 
-export async function ensureDefaultEssentials(input: { userId: string }) {
+export async function ensureDefaultEssentials(input: { userId: string; workflowId: string }) {
   const supabase = await createSupabaseServerClient()
 
   // Seed only for brand-new users (no saved resources).
-  const any = await supabase.from('resources').select('id').eq('user_id', input.userId).is('deleted_at', null).limit(1)
+  const any = await supabase
+    .from('resources')
+    .select('id')
+    .eq('user_id', input.userId)
+    .eq('workflow_id', input.workflowId)
+    .is('deleted_at', null)
+    .limit(1)
   if (any.error) throw any.error
   if ((any.data ?? []).length > 0) return
 
@@ -142,6 +157,7 @@ export async function ensureDefaultEssentials(input: { userId: string }) {
     .from('resources')
     .select('url')
     .eq('user_id', input.userId)
+    .eq('workflow_id', input.workflowId)
     .is('deleted_at', null)
     .in(
       'url',
@@ -156,6 +172,7 @@ export async function ensureDefaultEssentials(input: { userId: string }) {
     .filter((d) => !existingUrls.has(d.url))
     .map((d, idx) => ({
       user_id: input.userId,
+      workflow_id: input.workflowId,
       url: d.url,
       title: d.title,
       notes: null,
@@ -174,6 +191,7 @@ export async function ensureDefaultEssentials(input: { userId: string }) {
 
 export async function createResource(input: {
   userId: string
+  workflowId: string
   url: string
   title?: string
   notes?: string
@@ -184,6 +202,7 @@ export async function createResource(input: {
     .from('resources')
     .insert({
       user_id: input.userId,
+      workflow_id: input.workflowId,
       url: input.url,
       title: input.title ?? null,
       notes: input.notes ?? null,

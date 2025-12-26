@@ -1,32 +1,3 @@
----
-name: Deep solo workflow plan
-overview: Comprehensive solo-first plan to evolve Cerna into a calm, fast “work OS” with a 3-column dashboard (tasks + urgent feed + focus + resources + scratchpad), strict Spaces later, and read-only integrations as a future feed source.
-todos:
-  - id: rebuild-migration
-    content: Create migration 0008_tasks_and_scratchpad.sql with RLS policies and updated_at triggers matching existing patterns
-    status: pending
-  - id: rebuild-server-layer
-    content: Add tasksTag/scratchpadTag, implement lib/db/tasks.ts and lib/db/scratchpad.ts with unstable_cache, and add server actions for tasks and scratchpad
-    status: pending
-    dependencies:
-      - rebuild-migration
-  - id: dashboard-3col
-    content: Refactor gated dashboard page to 3-column layout and add Today tasks, internal urgent feed, resources lists, and scratchpad with clear states
-    status: pending
-    dependencies:
-      - rebuild-server-layer
-  - id: focus-provider
-    content: Implement FocusProvider + FocusPanel and apply filtering to both dashboard resource surfaces and EssentialsDockClient
-    status: pending
-    dependencies:
-      - dashboard-3col
-  - id: polish-a11y
-    content: Audit keyboard support, focus states, empty/error copy, and double-submit prevention across new components
-    status: pending
-    dependencies:
-      - focus-provider
----
-
 # Deep plan: extend Cerna into a solo work workflow
 
 ## Conversation summary (full context)
@@ -195,7 +166,7 @@ Design notes:
 
 Update:
 
-- `[app/(app)/app/(gated)/page.tsx](/Users/bohdan.kolesnik/Desktop/cerna/app/\\(app)/app/(gated)/page.tsx)`
+- `[app/(app)/app/(gated)/page.tsx](/Users/bohdan.kolesnik/Desktop/cerna/app/\\\\\\(app)/app/(gated)/page.tsx)`
 
 Server fetches (parallel):
 
@@ -262,7 +233,7 @@ Add:
 
 Update:
 
-- `[app/(app)/app/(gated)/layout.tsx](/Users/bohdan.kolesnik/Desktop/cerna/app/\\(app)/app/(gated)/layout.tsx)`
+- `[app/(app)/app/(gated)/layout.tsx](/Users/bohdan.kolesnik/Desktop/cerna/app/\\\\\\(app)/app/(gated)/layout.tsx)`
 - Keep server checks (`requireServerUser`, `requireActiveEntitlement`).
 - Wrap children and dock in a small client wrapper that renders `FocusProvider`.
 
@@ -329,6 +300,10 @@ flowchart LR
   FocusProvider -->|"allowedResourceIds"| Resources
   FocusProvider -->|"allowedResourceIds"| EssentialsDockClient
   FocusProvider -->|"isActive"| UrgentFeed["UrgentFeed"]
+
+
+
+
 
 
 ```

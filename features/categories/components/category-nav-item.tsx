@@ -7,13 +7,14 @@ import { useMemo } from 'react'
 import { cn } from '@/lib/utils'
 
 type CategoryNavItemProps = {
+  workflowId: string
   id: string
   name: string
 }
 
-export function CategoryNavItem({ id, name }: CategoryNavItemProps) {
+export function CategoryNavItem({ workflowId, id, name }: CategoryNavItemProps) {
   const pathname = usePathname()
-  const href = useMemo(() => `/app/category/${id}`, [id])
+  const href = useMemo(() => `/app/w/${workflowId}/category/${id}`, [workflowId, id])
   const isActive = pathname === href
 
   return (

@@ -34,9 +34,11 @@ function getIconAltText(url: string, title: string | null) {
 export function EssentialsDockClient({
   essentials,
   categories,
+  workflowId,
 }: {
   essentials: EssentialsItem[]
   categories: Category[]
+  workflowId: string
 }) {
   const viewportRef = useRef<HTMLDivElement | null>(null)
   const pointerIdRef = useRef<number | null>(null)
@@ -275,6 +277,7 @@ export function EssentialsDockClient({
       <div className="shrink-0">
         <EssentialsAddDialog
           categories={categories}
+          workflowId={workflowId}
           triggerLabel="Add an essential"
           triggerTooltip="Add to essentials"
           trigger={

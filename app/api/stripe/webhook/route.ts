@@ -30,7 +30,7 @@ async function upsertEntitlement(input: { userId: string; isActive: boolean }) {
 async function upsertSubscription(input: { userId: string; subscription: Stripe.Subscription }) {
   const supabase = createSupabaseAdminClient()
   const priceId = input.subscription.items.data[0]?.price.id ?? input.subscription.items.data[0]?.plan?.id ?? null
-  const currentPeriodEndSeconds = input.subscription.items.data[0]?.current_period_end ?? null
+  const currentPeriodEndSeconds = input.subscription.current_period_end ?? null
   const currentPeriodEndIso = currentPeriodEndSeconds ? new Date(currentPeriodEndSeconds * 1000).toISOString() : null
 
   const res = await supabase.from('stripe_subscriptions').upsert(
@@ -73,8 +73,7 @@ async function syncSubscriptionById(subscriptionId: string) {
 }
 
 function getInvoiceSubscriptionId(invoice: Stripe.Invoice) {
-  const details = invoice.parent?.subscription_details
-  const sub = details?.subscription
+  const sub = invoice.subscription
   if (!sub) return null
   return typeof sub === 'string' ? sub : sub.id
 }

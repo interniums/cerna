@@ -26,7 +26,7 @@ function looksFuzzy(query: string) {
   return q.length >= 3 && q.length <= 32
 }
 
-export async function searchResources(input: { userId: string; query: string; limit?: number }) {
+export async function searchResources(input: { userId: string; workflowId: string; query: string; limit?: number }) {
   const supabase = await createSupabaseServerClient()
   const q = input.query.trim()
   const limit = input.limit ?? 30
@@ -37,6 +37,7 @@ export async function searchResources(input: { userId: string; query: string; li
     .from('resources')
     .select('*')
     .eq('user_id', input.userId)
+    .eq('workflow_id', input.workflowId)
     .is('deleted_at', null)
     .textSearch('tsv', q, { type: 'websearch' })
     .limit(limit)
@@ -91,6 +92,7 @@ export async function searchResources(input: { userId: string; query: string; li
       .select('*')
       .in('id', auxIds)
       .eq('user_id', input.userId)
+      .eq('workflow_id', input.workflowId)
       .is('deleted_at', null)
     if (auxResources.error) throw auxResources.error
     ;(auxResources.data ?? []).forEach((r) => byId.set(r.id, r as Resource))

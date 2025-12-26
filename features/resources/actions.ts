@@ -4,7 +4,6 @@ import { revalidateTag } from 'next/cache'
 import { redirect } from 'next/navigation'
 
 import {
-  CreateResourceSchema,
   createResource,
   UpdateResourceSchema,
   addEssential,
@@ -19,13 +18,31 @@ import { essentialsTag, resourceByIdTag, resourcesTag } from '@/lib/cache/tags'
 import { requireServerUser } from '@/lib/supabase/auth'
 import { indexResourceEmbedding } from '@/lib/search/indexing'
 import { fetchUrlMetadata } from '@/lib/metadata/fetch-url-metadata'
+import { getDefaultWorkflowId } from '@/lib/db/workflows'
+import { z } from 'zod'
 
 export type ResourceActionState = { ok: true; undoResourceId?: string } | { ok: false; message: string }
 
 const tagRevalidateProfile = { expire: 0 } as const
 
+const CreateResourceActionSchema = z.object({
+  workflowId: z.string().uuid().optional(),
+  url: z.string().url().max(2048),
+  title: z.string().trim().max(200).optional(),
+  notes: z.string().trim().max(2000).optional(),
+  categoryId: z.string().uuid().optional(),
+})
+
+async function getWorkflowIdFromFormData(input: { userId: string; formData: FormData }) {
+  const raw = input.formData.get('workflowId')
+  const candidate = typeof raw === 'string' ? raw.trim() : ''
+  if (candidate) return candidate
+  return await getDefaultWorkflowId({ userId: input.userId })
+}
+
 async function createResourceShared(input: {
   userId: string
+  workflowId: string
   url: string
   title?: string
   notes?: string
@@ -34,6 +51,7 @@ async function createResourceShared(input: {
 }) {
   const created = await createResource({
     userId: input.userId,
+    workflowId: input.workflowId,
     url: input.url,
     title: input.title,
     notes: input.notes,
@@ -79,7 +97,8 @@ export async function createResourceAction(
   _prev: ResourceActionState,
   formData: FormData
 ): Promise<ResourceActionState> {
-  const parsed = CreateResourceSchema.safeParse({
+  const parsed = CreateResourceActionSchema.safeParse({
+    workflowId: formData.get('workflowId') || undefined,
     url: formData.get('url'),
     title: formData.get('title') || undefined,
     notes: formData.get('notes') || undefined,
@@ -89,10 +108,12 @@ export async function createResourceAction(
   if (!parsed.success) return { ok: false, message: 'Enter a valid URL.' }
 
   const user = await requireServerUser()
+  const workflowId = parsed.data.workflowId ?? (await getWorkflowIdFromFormData({ userId: user.id, formData }))
 
   try {
     await createResourceShared({
       userId: user.id,
+      workflowId,
       url: parsed.data.url,
       title: parsed.data.title,
       notes: parsed.data.notes,
@@ -111,7 +132,8 @@ export async function createEssentialResourceAction(
   _prev: ResourceActionState,
   formData: FormData
 ): Promise<ResourceActionState> {
-  const parsed = CreateResourceSchema.safeParse({
+  const parsed = CreateResourceActionSchema.safeParse({
+    workflowId: formData.get('workflowId') || undefined,
     url: formData.get('url'),
     title: formData.get('title') || undefined,
     notes: formData.get('notes') || undefined,
@@ -121,10 +143,12 @@ export async function createEssentialResourceAction(
   if (!parsed.success) return { ok: false, message: 'Enter a valid URL.' }
 
   const user = await requireServerUser()
+  const workflowId = parsed.data.workflowId ?? (await getWorkflowIdFromFormData({ userId: user.id, formData }))
 
   try {
     const created = await createResourceShared({
       userId: user.id,
+      workflowId,
       url: parsed.data.url,
       title: parsed.data.title,
       notes: parsed.data.notes,
@@ -134,7 +158,8 @@ export async function createEssentialResourceAction(
 
     revalidateTag(resourcesTag(user.id), tagRevalidateProfile)
     revalidateTag(resourceByIdTag(user.id, created.id), tagRevalidateProfile)
-    revalidateTag(essentialsTag(user.id, 16), tagRevalidateProfile)
+    // Essentials dock uses a fixed limit (16).
+    revalidateTag(essentialsTag(user.id, workflowId, 16), tagRevalidateProfile)
     return { ok: true }
   } catch {
     return { ok: false, message: 'Couldn’t save. Try again.' }
@@ -202,8 +227,7 @@ export async function toggleEssentialAction(resourceId: string, _formData?: Form
   await toggleEssential({ userId: user.id, resourceId })
   revalidateTag(resourcesTag(user.id), tagRevalidateProfile)
   revalidateTag(resourceByIdTag(user.id, resourceId), tagRevalidateProfile)
-  // Essentials dock uses a fixed limit (16).
-  revalidateTag(essentialsTag(user.id, 16), tagRevalidateProfile)
+  // Note: Essentials list caches also depend on `resourcesTag(...)`, so this revalidation is sufficient.
 }
 
 export async function toggleEssentialStateAction(
@@ -217,7 +241,6 @@ export async function toggleEssentialStateAction(
   await toggleEssential({ userId: user.id, resourceId })
   revalidateTag(resourcesTag(user.id), tagRevalidateProfile)
   revalidateTag(resourceByIdTag(user.id, resourceId), tagRevalidateProfile)
-  revalidateTag(essentialsTag(user.id, 16), tagRevalidateProfile)
   return { ok: true }
 }
 
@@ -239,7 +262,6 @@ export async function addEssentialStateAction(
     revalidateTag(resourceByIdTag(user.id, resourceId), tagRevalidateProfile)
   }
   revalidateTag(resourcesTag(user.id), tagRevalidateProfile)
-  revalidateTag(essentialsTag(user.id, 16), tagRevalidateProfile)
   return { ok: true }
 }
 

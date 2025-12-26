@@ -20,10 +20,11 @@ import {
 type NewResourceDialogProps = {
   categories: Category[]
   defaultCategoryId?: string
+  workflowId: string
   trigger?: 'button' | 'icon' | 'wide'
 }
 
-export function NewResourceDialog({ categories, defaultCategoryId, trigger = 'button' }: NewResourceDialogProps) {
+export function NewResourceDialog({ categories, defaultCategoryId, workflowId, trigger = 'button' }: NewResourceDialogProps) {
   const [open, setOpen] = useState(false)
   const [resetKey, setResetKey] = useState(0)
 
@@ -70,6 +71,7 @@ export function NewResourceDialog({ categories, defaultCategoryId, trigger = 'bu
           submitIdleText="Add resource"
           submitPendingText="Adding…"
           successToast="Resource added."
+          hiddenInputs={<input type="hidden" name="workflowId" value={workflowId} />}
           extraFields={
             <SectionSelect
               categories={categories}

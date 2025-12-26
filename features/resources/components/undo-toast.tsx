@@ -1,56 +1,46 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useCallback, useEffect, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 
 import { restoreResourceAction } from '@/features/resources/actions'
 
-function removeUndoParam(pathname: string, searchParams: URLSearchParams) {
-  const sp = new URLSearchParams(searchParams)
-  sp.delete('undo')
-  const qs = sp.toString()
-  return qs ? `${pathname}?${qs}` : pathname
-}
-
 export function UndoToast() {
-  const router = useRouter()
-  const pathname = usePathname()
   const searchParams = useSearchParams()
 
-  const [undoResourceId, setUndoResourceId] = useState<string | null>(null)
   const lastSeenRef = useRef<string | null>(null)
   const toastIdRef = useRef<string | number | null>(null)
   const formRef = useRef<HTMLFormElement | null>(null)
 
-  // Capture the undo id once and immediately clean the URL so we don't repeat on refresh.
-  useEffect(() => {
-    const id = searchParams.get('undo')
-    if (!id) return
-    if (lastSeenRef.current === id) return
-    lastSeenRef.current = id
+  const undoResourceId = searchParams.get('undo')
 
-    setUndoResourceId(id)
-    router.replace(removeUndoParam(pathname, new URLSearchParams(searchParams)), { scroll: false })
-  }, [pathname, router, searchParams])
+  const handleUndo = useCallback(() => {
+    // Best-effort: submit a server action form (works even from a client component).
+    formRef.current?.requestSubmit()
+    if (toastIdRef.current != null) toast.dismiss(toastIdRef.current)
+  }, [])
 
   useEffect(() => {
     if (!undoResourceId) return
+    if (lastSeenRef.current === undoResourceId) return
 
-    const handleUndo = () => {
-      // Best-effort: submit a server action form (works even from a client component).
-      formRef.current?.requestSubmit()
-      if (toastIdRef.current != null) toast.dismiss(toastIdRef.current)
+    // Persist across refresh so we don't repeat the toast for the same id.
+    const storageKey = 'cerna.undo.lastSeen'
+    try {
+      if (window.sessionStorage.getItem(storageKey) === undoResourceId) return
+      window.sessionStorage.setItem(storageKey, undoResourceId)
+    } catch {
+      // Ignore storage failures (e.g. blocked storage).
     }
+
+    lastSeenRef.current = undoResourceId
 
     toastIdRef.current = toast('Resource deleted.', {
       duration: 10_000,
       action: { label: 'Undo', onClick: handleUndo },
     })
-
-    const t = window.setTimeout(() => setUndoResourceId(null), 10_500)
-    return () => window.clearTimeout(t)
-  }, [undoResourceId])
+  }, [handleUndo, undoResourceId])
 
   if (!undoResourceId) return null
 
