@@ -11,6 +11,28 @@ type EventsResponse =
   | { ok: true; accounts: Array<{ id: string; email: string; displayName: string | null; enabled: boolean; lastError: string | null }>; events: Array<CalendarEvent & { accountId: string; accountEmail: string }> }
   | { ok: false; message: string }
 
+function toUserFacingGoogleCalendarError(error: unknown): string {
+  const raw = error instanceof Error ? error.message : ''
+  if (!raw) return 'Couldn’t load events.'
+
+  if (raw.includes('insufficient authentication scopes')) {
+    return 'Google Calendar permission missing. Reconnect and allow Calendar access.'
+  }
+  if (raw.includes('Invalid Credentials') || raw.includes('Invalid token')) {
+    return 'Google Calendar session expired. Reconnect to continue.'
+  }
+  if (raw.includes('Google Calendar API has not been used') || raw.includes('it is disabled')) {
+    return 'Google Calendar API is disabled for this project. Enable it in Google Cloud Console.'
+  }
+
+  // Strip internal prefix if present.
+  if (raw.startsWith('[google-calendar] ')) {
+    return raw.replace(/^\[google-calendar\]\s*\d+\s*/i, '').slice(0, 500)
+  }
+
+  return raw.slice(0, 500)
+}
+
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const workflowId = requestUrl.searchParams.get('workflowId') ?? ''
@@ -45,9 +67,10 @@ export async function GET(request: Request) {
 
   const admin = createSupabaseAdminClient()
 
-  const now = new Date()
-  const timeMinIso = now.toISOString()
-  const timeMaxIso = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString()
+  // Include events that started recently (useful for "join now" in the first few minutes).
+  const nowMs = Date.now()
+  const timeMinIso = new Date(nowMs - 10 * 60 * 1000).toISOString()
+  const timeMaxIso = new Date(nowMs + 24 * 60 * 60 * 1000).toISOString()
 
   const out: Array<CalendarEvent & { accountId: string; accountEmail: string }> = []
 
@@ -92,7 +115,12 @@ export async function GET(request: Request) {
       }
     } catch (error) {
       console.error('[calendar events] list events failed', error)
-      await supabase.from('calendar_accounts').update({ last_error: 'Couldn’t load events.' }).eq('id', acct.id).eq('user_id', user.id)
+      const msg = toUserFacingGoogleCalendarError(error)
+      await supabase
+        .from('calendar_accounts')
+        .update({ last_error: msg.slice(0, 500) })
+        .eq('id', acct.id)
+        .eq('user_id', user.id)
     }
   }
 

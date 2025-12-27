@@ -7,6 +7,7 @@ export type InstrumentationEventName =
   | 'view_command_center'
   | 'view_morning'
   | 'task_created'
+  | 'task_updated'
   | 'task_completed'
   | 'task_reopened'
   | 'task_deleted'

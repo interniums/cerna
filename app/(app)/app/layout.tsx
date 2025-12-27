@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { OpenSpotlightButton } from '@/components/app/open-spotlight-button'
 import { SpotlightDataProvider } from '@/components/app/spotlight-data'
 import { ThemeToggle } from '@/components/theme/theme-toggle'
+import { BodyScrollLock } from '@/components/app/body-scroll-lock'
 
 export const metadata: Metadata = {
   robots: {
@@ -26,7 +27,8 @@ export default async function AppLayout({
   await requireServerUser()
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden">
+    <div className="fixed inset-0 flex flex-col overflow-hidden">
+      <BodyScrollLock />
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur">
         <Container className="flex h-14 max-w-none items-center justify-between">
           <Logo href="/app" />
@@ -42,7 +44,7 @@ export default async function AppLayout({
         </Container>
       </header>
       <main className="flex-1 overflow-hidden">
-        <Container className="flex h-full min-h-0 max-w-none flex-col py-10">
+        <Container className="flex h-full min-h-0 max-w-none flex-col pt-6 pb-0">
           <div className="flex-1 min-h-0">{children}</div>
         </Container>
       </main>

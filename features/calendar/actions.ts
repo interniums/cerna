@@ -7,7 +7,13 @@ import { requireServerUser } from '@/lib/supabase/auth'
 import { deleteCalendarAccount, upsertWorkflowCalendarVisibility } from '@/lib/db/calendar'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
-export type CalendarActionState = { ok: true } | { ok: false; message: string }
+export type CalendarActionState =
+  | { ok: true; nonce: number }
+  | { ok: false; message: string; nonce: number }
+
+function createNonce() {
+  return Date.now()
+}
 
 const tagRevalidateProfile = { expire: 0 } as const
 
@@ -26,7 +32,7 @@ export async function toggleWorkflowCalendarVisibilityAction(
     accountId: formData.get('accountId'),
     enabled: formData.get('enabled'),
   })
-  if (!parsed.success) return { ok: false, message: 'Couldn’t update calendar settings.' }
+  if (!parsed.success) return { ok: false, message: 'Couldn’t update calendar settings.', nonce: createNonce() }
 
   const user = await requireServerUser()
   try {
@@ -37,9 +43,9 @@ export async function toggleWorkflowCalendarVisibilityAction(
     })
     // Widget is client-fetched, but revalidation helps if we later cache server-side.
     revalidateTag(`calendar:${user.id}`, tagRevalidateProfile)
-    return { ok: true }
+    return { ok: true, nonce: createNonce() }
   } catch {
-    return { ok: false, message: 'Couldn’t save. Try again.' }
+    return { ok: false, message: 'Couldn’t save. Try again.', nonce: createNonce() }
   }
 }
 
@@ -52,7 +58,7 @@ export async function disconnectCalendarAccountAction(
   formData: FormData
 ): Promise<CalendarActionState> {
   const parsed = DisconnectSchema.safeParse({ accountId: formData.get('accountId') })
-  if (!parsed.success) return { ok: false, message: 'Couldn’t disconnect that account.' }
+  if (!parsed.success) return { ok: false, message: 'Couldn’t disconnect that account.', nonce: createNonce() }
 
   const user = await requireServerUser()
 
@@ -63,9 +69,9 @@ export async function disconnectCalendarAccountAction(
 
     await deleteCalendarAccount({ userId: user.id, accountId: parsed.data.accountId })
     revalidateTag(`calendar:${user.id}`, tagRevalidateProfile)
-    return { ok: true }
+    return { ok: true, nonce: createNonce() }
   } catch {
-    return { ok: false, message: 'Couldn’t disconnect. Try again.' }
+    return { ok: false, message: 'Couldn’t disconnect. Try again.', nonce: createNonce() }
   }
 }
 

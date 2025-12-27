@@ -24,9 +24,30 @@ type NewResourceDialogProps = {
   trigger?: 'button' | 'icon' | 'wide'
 }
 
-export function NewResourceDialog({ categories, defaultCategoryId, workflowId, trigger = 'button' }: NewResourceDialogProps) {
+export function NewResourceDialog({
+  categories,
+  defaultCategoryId,
+  workflowId,
+  trigger = 'button',
+}: NewResourceDialogProps) {
   const [open, setOpen] = useState(false)
   const [resetKey, setResetKey] = useState(0)
+
+  const lastUsedStorageKey = `cerna:lastResourceCategoryId:${workflowId}`
+  const [rememberedCategoryId] = useState<string | undefined>(() => {
+    if (typeof window === 'undefined') return undefined
+    try {
+      const raw = window.localStorage.getItem(lastUsedStorageKey)
+      return raw === null ? undefined : raw
+    } catch {
+      return undefined
+    }
+  })
+
+  const rememberedIsValid =
+    rememberedCategoryId === '' || (rememberedCategoryId ? categories.some((c) => c.id === rememberedCategoryId) : false)
+
+  const effectiveDefaultCategoryId = defaultCategoryId ?? (rememberedIsValid ? rememberedCategoryId : undefined)
 
   function handleDialogOpenChange(nextOpen: boolean) {
     setOpen(nextOpen)
@@ -36,6 +57,14 @@ export function NewResourceDialog({ categories, defaultCategoryId, workflowId, t
   function closeAndResetDialog() {
     setOpen(false)
     setResetKey((k) => k + 1)
+  }
+
+  function handleSectionSubmittedValueChange(nextCategoryId: string) {
+    try {
+      window.localStorage.setItem(lastUsedStorageKey, nextCategoryId)
+    } catch {
+      // Non-blocking: if storage is unavailable, fall back to normal default behavior.
+    }
   }
 
   return (
@@ -49,9 +78,11 @@ export function NewResourceDialog({ categories, defaultCategoryId, workflowId, t
           <Button
             type="button"
             size="lg"
-            className="h-14 w-full px-6 text-base bg-card/70 text-foreground shadow-sm backdrop-blur-md border border-border/60 hover:bg-card/85 dark:border-white/15"
+            variant="ghost"
+            aria-label="Add resource"
+            className="h-14 w-full max-w-[340px] rounded-2xl bg-card/25 px-6 text-foreground shadow-sm backdrop-blur-md hover:bg-card/40 dark:bg-white/5 dark:hover:bg-white/8"
           >
-            Add resource
+            <Plus aria-hidden="true" className="size-5" />
           </Button>
         ) : (
           <Button size="sm">Add resource</Button>
@@ -75,9 +106,10 @@ export function NewResourceDialog({ categories, defaultCategoryId, workflowId, t
           extraFields={
             <SectionSelect
               categories={categories}
-              defaultValue={defaultCategoryId}
+              defaultValue={effectiveDefaultCategoryId}
               id="resource-category"
               label="Section"
+              onSubmittedValueChange={handleSectionSubmittedValueChange}
             />
           }
           onDone={closeAndResetDialog}
@@ -89,7 +121,7 @@ export function NewResourceDialog({ categories, defaultCategoryId, workflowId, t
         {/* Keep a DialogClose button for keyboard users who may tab to the footer; ResourceCreateForm already renders one. */}
         <div className="sr-only">
           <DialogClose asChild>
-            <button type="button">Close</button>
+            <button type="button">Cancel</button>
           </DialogClose>
         </div>
       </DialogContent>

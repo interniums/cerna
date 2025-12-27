@@ -34,7 +34,7 @@ export function MorningBriefing({ workflowId, overdue, today, noDue, pinned, rec
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-8 lg:grid-cols-3">
         <div className="grid gap-6 lg:col-span-2">
           <Card>
             <CardHeader className="pb-3">
@@ -122,7 +122,7 @@ export function MorningBriefing({ workflowId, overdue, today, noDue, pinned, rec
           </Card>
         </div>
 
-        <div className="grid gap-6">
+        <div className="grid min-w-0 gap-6">
           <CalendarWidget workflowId={workflowId} />
         </div>
       </div>

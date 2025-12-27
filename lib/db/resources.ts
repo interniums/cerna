@@ -21,6 +21,7 @@ export type Resource = {
   pinned_at: string | null
   is_essential: boolean
   essential_at: string | null
+  sort_order: number | null
   visit_count: number
   last_visited_at: string | null
   deleted_at: string | null
@@ -38,6 +39,7 @@ export const CreateResourceSchema = z.object({
 
 export const UpdateResourceSchema = z.object({
   resourceId: z.string().uuid(),
+  url: z.string().url().max(2048).optional(),
   title: z.string().trim().max(200).optional(),
   notes: z.string().trim().max(2000).optional(),
 })
@@ -78,6 +80,7 @@ export async function listResources(input: {
         query = query
           .order('is_pinned', { ascending: false })
           .order('pinned_at', { ascending: true, nullsFirst: false })
+          .order('sort_order', { ascending: true, nullsFirst: false })
           .order('last_visited_at', { ascending: false, nullsFirst: false })
           .order('visit_count', { ascending: false })
           .order('created_at', { ascending: false })
@@ -107,7 +110,6 @@ export async function listEssentialsResources(input: { userId: string; workflowI
 
   const cached = unstable_cache(
     async () => {
-      // Fetch the most recently marked essentials (DESC), then render them chronologically (ASC) in the UI.
       const res = await supabase
         .from('resources')
         .select('*')
@@ -115,15 +117,13 @@ export async function listEssentialsResources(input: { userId: string; workflowI
         .eq('workflow_id', input.workflowId)
         .is('deleted_at', null)
         .eq('is_essential', true)
-        .order('essential_at', { ascending: false, nullsFirst: false })
-        .order('created_at', { ascending: false })
+        // Essentials dock ordering: left→right is the persisted `essential_at` order.
+        .order('essential_at', { ascending: true, nullsFirst: false })
+        .order('id', { ascending: true })
         .limit(limit)
 
       if (res.error) throw res.error
-      const rows = (res.data ?? []) as Resource[]
-
-      // Display oldest → newest within this slice so newly pinned items appear on the right.
-      return rows.reverse()
+      return (res.data ?? []) as Resource[]
     },
     ['listEssentialsResources', input.userId, input.workflowId, String(limit)],
     { revalidate: 30, tags: [resourcesTag(input.userId), essentialsTag(input.userId, input.workflowId, limit)] }
@@ -238,10 +238,17 @@ export async function updateResourceMetadata(input: {
   if (res.error) throw res.error
 }
 
-export async function updateResource(input: { userId: string; resourceId: string; title?: string; notes?: string }) {
+export async function updateResource(input: {
+  userId: string
+  resourceId: string
+  url?: string
+  title?: string
+  notes?: string
+}) {
   const supabase = await createSupabaseServerClient()
 
   const patch: Record<string, string | null> = {}
+  if (input.url !== undefined) patch.url = input.url || null
   if (input.title !== undefined) patch.title = input.title || null
   if (input.notes !== undefined) patch.notes = input.notes || null
   if (Object.keys(patch).length === 0) return
@@ -251,11 +258,11 @@ export async function updateResource(input: { userId: string; resourceId: string
     .update(patch)
     .eq('id', input.resourceId)
     .eq('user_id', input.userId)
-    .select('id,title,notes')
+    .select('id,url,title,notes')
     .single()
 
   if (res.error) throw res.error
-  return res.data as Pick<Resource, 'id' | 'title' | 'notes'>
+  return res.data as Pick<Resource, 'id' | 'url' | 'title' | 'notes'>
 }
 
 export async function togglePinned(input: { userId: string; resourceId: string }) {
@@ -303,6 +310,40 @@ export async function toggleEssential(input: { userId: string; resourceId: strin
 
   if (res.error) throw res.error
   return res.data as Pick<Resource, 'id' | 'is_essential' | 'essential_at'>
+}
+
+export async function setPinned(input: { userId: string; resourceId: string; isPinned: boolean }) {
+  const supabase = await createSupabaseServerClient()
+
+  const current = await supabase
+    .from('resources')
+    .select('is_pinned,pinned_at')
+    .eq('id', input.resourceId)
+    .eq('user_id', input.userId)
+    .single()
+  if (current.error) throw current.error
+
+  if (current.data.is_pinned === input.isPinned) {
+    return {
+      id: input.resourceId,
+      is_pinned: current.data.is_pinned,
+      pinned_at: current.data.pinned_at,
+    } as Pick<Resource, 'id' | 'is_pinned' | 'pinned_at'>
+  }
+
+  const res = await supabase
+    .from('resources')
+    .update({
+      is_pinned: input.isPinned,
+      pinned_at: input.isPinned ? new Date().toISOString() : null,
+    })
+    .eq('id', input.resourceId)
+    .eq('user_id', input.userId)
+    .select('id,is_pinned,pinned_at')
+    .single()
+
+  if (res.error) throw res.error
+  return res.data as Pick<Resource, 'id' | 'is_pinned' | 'pinned_at'>
 }
 
 export async function setEssential(input: { userId: string; resourceId: string; isEssential: boolean }) {

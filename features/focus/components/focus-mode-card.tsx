@@ -153,7 +153,7 @@ export function FocusModeCard({ workflowId, tasks, initialTaskId, onActiveChange
         setEndState(next)
         if (!next.ok) return
 
-        toast.success('Focus saved.')
+        toast('Focus saved.')
         setSessionId(null)
         resetTimer()
       } catch {

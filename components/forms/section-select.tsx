@@ -1,6 +1,12 @@
-import { ChevronDown } from 'lucide-react'
+
+'use client'
+
+import { useCallback, useMemo, useState } from 'react'
 
 import type { Category } from '@/lib/db/categories'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+
+const UNCATEGORIZED_VALUE = '__uncategorized__'
 
 type SectionSelectProps = {
   categories: Category[]
@@ -8,6 +14,16 @@ type SectionSelectProps = {
   id?: string
   name?: string
   label?: string
+  disabled?: boolean
+  /**
+   * Called whenever the user changes selection.
+   * Receives the submitted value (empty string means Uncategorized).
+   */
+  onSubmittedValueChange?: (categoryId: string) => void
+  /**
+   * When true, applies the same visual invalid state as `Input` (red border + ring).
+   */
+  'aria-invalid'?: boolean
 }
 
 export function SectionSelect({
@@ -16,32 +32,49 @@ export function SectionSelect({
   id = 'categoryId',
   name = 'categoryId',
   label = 'Section',
+  disabled,
+  onSubmittedValueChange,
+  'aria-invalid': ariaInvalid,
 }: SectionSelectProps) {
-  const hasCategories = categories.length > 0
+  const uncategorizedLabel = useMemo(() => {
+    return categories.length > 0 ? 'Uncategorized' : 'Uncategorized (no sections yet)'
+  }, [categories.length])
+
+  const [value, setValue] = useState<string>(() => (defaultValue?.trim() ? defaultValue.trim() : UNCATEGORIZED_VALUE))
+
+  const handleValueChange = useCallback(
+    (next: string) => {
+      setValue(next)
+      const submitted = next === UNCATEGORIZED_VALUE ? '' : next
+      onSubmittedValueChange?.(submitted)
+    },
+    [onSubmittedValueChange]
+  )
+
+  const submittedValue = value === UNCATEGORIZED_VALUE ? '' : value
 
   return (
     <div className="grid gap-2">
       <label htmlFor={id} className="text-muted-foreground text-sm font-medium">
         {label}
       </label>
-      <div className="relative">
-        <select
-          id={id}
-          name={name}
-          className="border-input focus-visible:border-ring focus-visible:ring-ring/50 dark:bg-input/30 h-9 w-full appearance-none rounded-md border bg-transparent py-1 pl-3 pr-12 text-sm shadow-xs outline-none focus-visible:ring-[3px]"
-          defaultValue={defaultValue ?? ''}
-        >
-          <option value="">{hasCategories ? 'Uncategorized' : 'Uncategorized (no sections yet)'}</option>
+
+      {/* Radix Select doesn't submit with HTML forms; we bridge it with a hidden input. */}
+      <input type="hidden" name={name} value={submittedValue} />
+
+      <Select value={value} onValueChange={handleValueChange} disabled={disabled}>
+        <SelectTrigger id={id} aria-label={label} aria-invalid={ariaInvalid}>
+          <SelectValue placeholder={uncategorizedLabel} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={UNCATEGORIZED_VALUE}>{uncategorizedLabel}</SelectItem>
           {categories.map((c) => (
-            <option key={c.id} value={c.id}>
+            <SelectItem key={c.id} value={c.id}>
               {c.name}
-            </option>
+            </SelectItem>
           ))}
-        </select>
-        <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 -mt-[4.5px] text-muted-foreground">
-          <ChevronDown aria-hidden="true" className="size-4" />
-        </div>
-      </div>
+        </SelectContent>
+      </Select>
     </div>
   )
 }

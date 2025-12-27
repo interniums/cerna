@@ -166,6 +166,11 @@
   .cerna-no-scrollbar::-webkit-scrollbar {
     display: none; /* Chrome/Safari */
   }
+
+  /* Keep layout stable when switching between scrollable / non-scrollable panes. */
+  .scrollbar-gutter-stable {
+    scrollbar-gutter: stable;
+  }
 }
 
 /* Workflow theme cues (subtle; avoids layout jumps and keeps contrast predictable). */
@@ -186,7 +191,7 @@
 
   /* A calm, consistent accent underline for the main page title only. */
   [data-workflow-theme] h1 {
-    box-shadow: inset 0 -0.12em 0 color-mix(in oklch, var(--workflow-accent) 18%, transparent);
+    box-shadow: inset 0 -0.08em 0 color-mix(in oklch, var(--workflow-accent) 14%, transparent);
   }
 }
 

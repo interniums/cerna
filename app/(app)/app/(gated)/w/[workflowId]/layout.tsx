@@ -23,16 +23,16 @@ export default async function WorkflowScopedLayout({ children, params }: Workflo
 
   return (
     <div
-      className="grid h-full min-h-0 gap-8 px-4 sm:grid-cols-[15rem_minmax(0,1fr)] sm:px-6"
+      className="grid h-full min-h-0 min-w-0 gap-8 overflow-x-hidden px-4 pt-4 pb-0 sm:grid-cols-[15rem_minmax(0,1fr)] sm:px-6"
       data-workflow-theme={workflow.theme}
     >
       <AppSidebar userId={user.id} workflowId={workflowId} />
-      <div className="flex h-full min-h-0 flex-col py-6">
-        <div className="mb-6 pr-4">
+      <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
+        <div className="mb-3 min-w-0 pr-4">
           <EssentialsDock userId={user.id} workflowId={workflowId} />
         </div>
         <UndoToast />
-        {children}
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">{children}</div>
       </div>
     </div>
   )

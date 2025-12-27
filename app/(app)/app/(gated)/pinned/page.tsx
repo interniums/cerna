@@ -5,5 +5,5 @@ import { requireServerUser } from '@/lib/supabase/auth'
 export default async function PinnedPage() {
   const user = await requireServerUser()
   const workflowId = await getDefaultWorkflowId({ userId: user.id })
-  redirect(`/app/w/${workflowId}/pinned`)
+  redirect(`/app/w/${workflowId}/resources`)
 }

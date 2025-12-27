@@ -29,3 +29,39 @@ export function getResourceFaviconSrc(input: { url: string | null; favicon_url: 
 
   return null
 }
+
+export type UrlFieldRequirement = 'required' | 'optional'
+
+export type UrlValidationResult =
+  | { ok: true; value: string }
+  | { ok: false; message: string }
+
+/**
+ * Validates user-entered URLs for form inputs.
+ * - Trims whitespace
+ * - Requires http(s) scheme
+ * - Caps length at 2048 chars
+ */
+export function validateHttpUrlInput(raw: string, requirement: UrlFieldRequirement): UrlValidationResult {
+  const value = String(raw ?? '').trim()
+
+  if (!value) {
+    if (requirement === 'required') return { ok: false, message: 'URL is required.' }
+    return { ok: true, value: '' }
+  }
+
+  if (value.length > 2048) return { ok: false, message: 'Link is too long.' }
+
+  let parsed: URL
+  try {
+    parsed = new URL(value)
+  } catch {
+    return { ok: false, message: 'Please enter a valid URL (include https://).' }
+  }
+
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    return { ok: false, message: 'Please use an http(s) URL.' }
+  }
+
+  return { ok: true, value }
+}

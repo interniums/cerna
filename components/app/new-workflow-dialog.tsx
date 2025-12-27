@@ -78,7 +78,7 @@ export function NewWorkflowDialog({ triggerLabel = 'New workflow' }: NewWorkflow
   const handleTriggerClick = useCallback(() => handleOpenChange(true), [handleOpenChange])
 
   const handleCreated = useCallback(() => {
-    toast.success('Workflow created.')
+    toast('Workflow created.')
     handleOpenChange(false)
     router.refresh()
   }, [handleOpenChange, router])

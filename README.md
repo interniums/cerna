@@ -15,7 +15,7 @@ npm install
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `NEXT_PUBLIC_SITE_URL` (optional, defaults to `http://localhost:3000`)
-- `SUPABASE_SERVICE_ROLE_KEY` (server-only, required for Solidgate webhooks + billing sync)
+- `SUPABASE_SERVICE_ROLE_KEY` (server-only; **required for local/dev writes** because DB RLS gates writes behind entitlements, and the app seeds an active entitlement in dev)
 - `SOLIDGATE_API_PUBLIC_KEY`, `SOLIDGATE_API_SECRET_KEY`
 - `SOLIDGATE_WEBHOOK_PUBLIC_KEY`, `SOLIDGATE_WEBHOOK_SECRET_KEY`
 - `SOLIDGATE_PRODUCT_PRICE_ID_MONTHLY`, `SOLIDGATE_PRODUCT_PRICE_ID_YEARLY`, `SOLIDGATE_TRIAL_DAYS`

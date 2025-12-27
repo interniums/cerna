@@ -87,7 +87,7 @@ export function NewCategoryDialog({ workflowId }: { workflowId: string }) {
   }, [handleOpenChange])
 
   const handleCreated = useCallback(() => {
-    toast.success('Section created.')
+    toast('Section created.')
     handleOpenChange(false)
     router.refresh()
   }, [handleOpenChange, router])

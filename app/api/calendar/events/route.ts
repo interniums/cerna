@@ -29,6 +29,31 @@ type EventsResponse =
     }
   | { ok: false; message: string }
 
+function toUserFacingCalendarError(input: { provider: Provider; error: unknown }): string {
+  const raw = input.error instanceof Error ? input.error.message : ''
+  if (!raw) return 'Couldn’t load events.'
+
+  if (input.provider === 'google') {
+    if (raw.includes('insufficient authentication scopes')) {
+      return 'Google Calendar permission missing. Reconnect and allow Calendar access.'
+    }
+    if (raw.includes('Invalid Credentials') || raw.includes('Invalid token')) {
+      return 'Google Calendar session expired. Reconnect to continue.'
+    }
+    if (raw.startsWith('[google-calendar] ')) {
+      return raw.replace(/^\[google-calendar\]\s*\d+\s*/i, '').slice(0, 500)
+    }
+  }
+
+  if (input.provider === 'microsoft') {
+    if (raw.toLowerCase().includes('insufficient privileges') || raw.toLowerCase().includes('insufficient_scope')) {
+      return 'Microsoft Calendar permission missing. Reconnect to continue.'
+    }
+  }
+
+  return raw.slice(0, 500)
+}
+
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const workflowId = requestUrl.searchParams.get('workflowId') ?? ''
@@ -65,9 +90,10 @@ export async function GET(request: Request) {
 
   const admin = createSupabaseAdminClient()
 
-  const now = new Date()
-  const timeMinIso = now.toISOString()
-  const timeMaxIso = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString()
+  // Include events that started recently (useful for "join now" in the first few minutes).
+  const nowMs = Date.now()
+  const timeMinIso = new Date(nowMs - 10 * 60 * 1000).toISOString()
+  const timeMaxIso = new Date(nowMs + 24 * 60 * 60 * 1000).toISOString()
 
   const out: Array<CalendarEvent & { accountId: string; accountEmail: string; provider: Provider }> = []
 
@@ -132,7 +158,12 @@ export async function GET(request: Request) {
       }
     } catch (error) {
       console.error('[calendar events] list events failed', { provider: acct.provider, error })
-      await supabase.from('calendar_accounts').update({ last_error: 'Couldn’t load events.' }).eq('id', acct.id).eq('user_id', user.id)
+      const msg = toUserFacingCalendarError({ provider: acct.provider, error })
+      await supabase
+        .from('calendar_accounts')
+        .update({ last_error: msg.slice(0, 500) })
+        .eq('id', acct.id)
+        .eq('user_id', user.id)
     }
   }
 

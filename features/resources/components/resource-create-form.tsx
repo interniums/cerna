@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Link2 } from 'lucide-react'
+import { Link2, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import type { ResourceActionState } from '@/features/resources/actions'
@@ -15,7 +15,8 @@ import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { FormSubmitButton } from '@/components/forms/form-submit-button'
 import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
-import { getFaviconProxyUrl, getFaviconProxyUrlFromIconUrl } from '@/lib/url'
+import { getFaviconProxyUrl, getFaviconProxyUrlFromIconUrl, validateHttpUrlInput } from '@/lib/url'
+import { cn } from '@/lib/utils'
 
 const initialState: ResourceActionState = { ok: false, message: '' }
 
@@ -125,14 +126,29 @@ export function ResourceCreateForm({
   const [preview, setPreview] = useState<PreviewMeta | null>(null)
   const [previewState, setPreviewState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
   const inFlight = useRef<AbortController | null>(null)
+  const urlInputRef = useRef<HTMLInputElement | null>(null)
 
   const titleEditedRef = useRef(false)
   const didCompleteRef = useRef(false)
 
-  const errorMessage = state.ok ? '' : state.message
+  const submitUrlInvalid = !state.ok && state.message === 'Enter a valid URL.'
+  const errorMessage = state.ok ? '' : submitUrlInvalid ? '' : state.message
+
+  const [urlTouched, setUrlTouched] = useState(false)
+  const [urlError, setUrlError] = useState('')
+  const urlHelpId = `${urlInputId}-help`
+
+  const showTitleAutofillSpinner =
+    previewState === 'loading' && urlTouched && !urlError && !titleEditedRef.current && !titleInput.trim()
+
+  const submitUrlInvalidMessage = 'Please enter a valid URL (include https://).'
 
   function handleUrlChange(next: string) {
     setUrlInput(next)
+    if (urlTouched) {
+      const res = validateHttpUrlInput(next, 'required')
+      setUrlError(res.ok ? '' : res.message)
+    }
   }
 
   function handleTitleChange(next: string) {
@@ -142,6 +158,21 @@ export function ResourceCreateForm({
 
   function handleUrlInputChange(e: React.ChangeEvent<HTMLInputElement>) {
     handleUrlChange(e.target.value)
+  }
+
+  function handleUrlBlur(e: React.FocusEvent<HTMLInputElement>) {
+    setUrlTouched(true)
+    const res = validateHttpUrlInput(e.target.value, 'required')
+    setUrlError(res.ok ? '' : res.message)
+  }
+
+  function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {
+    const res = validateHttpUrlInput(urlInput, 'required')
+    if (res.ok) return
+    e.preventDefault()
+    setUrlTouched(true)
+    setUrlError(res.message)
+    queueMicrotask(() => urlInputRef.current?.focus())
   }
 
   function handleTitleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -213,13 +244,13 @@ export function ResourceCreateForm({
     if (didCompleteRef.current) return
     if (!state.ok) return
     didCompleteRef.current = true
-    toast.success(successToast)
+    toast(successToast)
     router.refresh()
     onDone()
   }, [onDone, router, state.ok, successToast])
 
   return (
-    <form action={formAction} className="flex h-full min-h-0 flex-col gap-4">
+    <form action={formAction} className="flex h-full min-h-0 flex-col gap-4" onSubmit={handleFormSubmit}>
       <div className="sr-only">
         <p>{title}</p>
         <p>{descriptionSrOnly}</p>
@@ -232,6 +263,7 @@ export function ResourceCreateForm({
           URL
         </Label>
         <Input
+          ref={urlInputRef}
           id={urlInputId}
           name="url"
           placeholder={urlPlaceholder}
@@ -240,7 +272,22 @@ export function ResourceCreateForm({
           required
           value={urlInput}
           onChange={handleUrlInputChange}
+          onBlur={handleUrlBlur}
+          aria-describedby={urlHelpId}
+          aria-invalid={(urlTouched && Boolean(urlError)) || submitUrlInvalid}
         />
+        <p
+          id={urlHelpId}
+          className={cn('min-h-4 text-xs', (urlTouched && urlError) || submitUrlInvalid ? 'text-destructive' : 'text-muted-foreground')}
+          role={urlTouched && urlError ? 'status' : submitUrlInvalid ? 'status' : undefined}
+          aria-live={urlTouched && urlError ? 'polite' : submitUrlInvalid ? 'polite' : undefined}
+        >
+          {urlTouched && urlError
+            ? urlError
+            : submitUrlInvalid
+              ? submitUrlInvalidMessage
+              : 'Paste a link.'}
+        </p>
       </div>
 
       <UrlPreview state={previewState} url={debouncedUrl} preview={preview} />
@@ -252,21 +299,29 @@ export function ResourceCreateForm({
           <Label htmlFor={titleInputId} className="text-muted-foreground">
             Title (optional)
           </Label>
-          <Input
-            id={titleInputId}
-            name="title"
-            placeholder={titlePlaceholder}
-            autoComplete="off"
-            value={titleInput}
-            onChange={handleTitleInputChange}
-          />
+          <div className="relative">
+            <Input
+              id={titleInputId}
+              name="title"
+              placeholder={titlePlaceholder}
+              autoComplete="off"
+              value={titleInput}
+              onChange={handleTitleInputChange}
+              className={showTitleAutofillSpinner ? 'pr-9' : undefined}
+            />
+            {showTitleAutofillSpinner ? (
+              <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                <Loader2 aria-hidden="true" className="size-4 animate-spin text-muted-foreground" />
+              </div>
+            ) : null}
+          </div>
         </div>
 
         <div className="grid gap-2">
           <Label htmlFor={notesInputId} className="text-muted-foreground">
             Notes (optional)
           </Label>
-          <Textarea id={notesInputId} name="notes" placeholder={notesPlaceholder} rows={4} />
+          <Textarea id={notesInputId} name="notes" placeholder={notesPlaceholder} rows={4} className="resize-y" />
         </div>
 
         {errorMessage ? (
@@ -280,7 +335,7 @@ export function ResourceCreateForm({
         <FormSubmitButton idleText={submitIdleText} pendingText={submitPendingText} />
         <DialogClose asChild>
           <Button type="button" variant="secondary">
-            Close
+            Cancel
           </Button>
         </DialogClose>
       </div>

@@ -24,10 +24,14 @@ function SelectTrigger({ className, children, ...props }: React.ComponentProps<t
         [
           'border-input dark:bg-input/30',
           'flex h-9 w-full items-center justify-between gap-2 rounded-md border bg-transparent px-3 py-1',
-          'text-sm shadow-xs outline-none',
+          // Match `Input` typography: consistent font + sizing across the app.
+          'font-sans font-normal text-base md:text-sm text-foreground shadow-xs outline-none transition-[color,box-shadow]',
           'focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50',
+          'aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive',
           'disabled:cursor-not-allowed disabled:opacity-50',
           '[&>span]:line-clamp-1',
+          // Match `Input` placeholder styling when `SelectValue` is showing a placeholder.
+          '**:data-placeholder:text-muted-foreground',
         ],
         className
       )}
@@ -78,7 +82,7 @@ function SelectContent({
         className={cn(
           [
             'bg-popover text-popover-foreground',
-            'relative z-50 min-w-[8rem] overflow-hidden rounded-md border shadow-md',
+            'relative z-50 min-w-32 overflow-hidden rounded-md border shadow-md',
             'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
             'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
             'data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2',
@@ -94,7 +98,7 @@ function SelectContent({
         <SelectScrollUpButton />
         <SelectPrimitive.Viewport
           data-slot="select-viewport"
-          className={cn('p-1', position === 'popper' && 'h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]')}
+          className={cn('p-1', position === 'popper' && 'w-full min-w-(--radix-select-trigger-width)')}
         >
           {children}
         </SelectPrimitive.Viewport>
@@ -114,9 +118,13 @@ function SelectItem({ className, children, ...props }: React.ComponentProps<type
       data-slot="select-item"
       className={cn(
         [
-          'focus:bg-accent focus:text-accent-foreground',
-          'relative flex w-full cursor-default select-none items-center gap-2 rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none',
-          'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+          // Mouse + keyboard: clear hover/press feedback.
+          'data-highlighted:bg-accent data-highlighted:text-accent-foreground',
+          'hover:bg-accent hover:text-accent-foreground',
+          'active:bg-accent/70',
+          'data-[state=checked]:bg-accent/40 data-[state=checked]:text-foreground',
+          'relative flex w-full cursor-pointer select-none items-center gap-2 rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none',
+          'data-disabled:pointer-events-none data-disabled:opacity-50',
         ],
         className
       )}

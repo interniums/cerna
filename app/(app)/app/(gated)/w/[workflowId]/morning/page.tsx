@@ -1,4 +1,3 @@
-import { ScrollYFade } from '@/components/ui/scroll-y-fade'
 import { Separator } from '@/components/ui/separator'
 import { requireServerUser } from '@/lib/supabase/auth'
 import { listMorningBriefingTasks } from '@/lib/db/tasks'
@@ -21,7 +20,7 @@ export default async function MorningBriefingPage({ params }: MorningBriefingPag
   ])
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex flex-col">
       <div className="flex flex-col gap-3 pr-4 pb-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Morning briefing</h1>
       </div>
@@ -30,13 +29,9 @@ export default async function MorningBriefingPage({ params }: MorningBriefingPag
         <Separator />
       </div>
 
-      <div className="relative flex-1 min-h-0">
-        <ScrollYFade className="h-full" viewportClassName="pr-4 pb-16">
-          <div className="pt-4 pb-4">
-            <PageViewTracker workflowId={workflowId} name="view_morning" />
-            <MorningBriefing workflowId={workflowId} overdue={overdue} today={today} noDue={noDue} pinned={pinned} recent={recent} />
-          </div>
-        </ScrollYFade>
+      <div className="pr-4 pt-4 pb-6">
+        <PageViewTracker workflowId={workflowId} name="view_morning" />
+        <MorningBriefing workflowId={workflowId} overdue={overdue} today={today} noDue={noDue} pinned={pinned} recent={recent} />
       </div>
     </div>
   )

@@ -177,7 +177,7 @@ function ChooseExistingTab({ workflowId, onDone }: { workflowId: string; onDone:
     if (didCompleteRef.current) return
     if (!state.ok) return
     didCompleteRef.current = true
-    toast.success('Added to essentials.')
+    toast('Added to essentials.')
     onDone()
   }, [onDone, state.ok])
 

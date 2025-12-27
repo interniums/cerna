@@ -3,7 +3,6 @@
 import { useCallback, useMemo, useState } from 'react'
 
 import type { Task } from '@/lib/db/tasks'
-import { TaskCreateForm } from '@/features/tasks/components/task-create-form'
 import { TaskList } from '@/features/tasks/components/task-list'
 import { FocusModeCard } from '@/features/focus/components/focus-mode-card'
 import { CalendarWidget } from '@/features/calendar/components/calendar-widget'
@@ -13,10 +12,19 @@ type CommandCenterClientProps = {
   workflowId: string
   openTasks: Task[]
   doneTasks: Task[]
+  todayUtcYmd: string
   initialFocusTaskId?: string
+  tasksLoadError?: string | null
 }
 
-export function CommandCenterClient({ workflowId, openTasks, doneTasks, initialFocusTaskId }: CommandCenterClientProps) {
+export function CommandCenterClient({
+  workflowId,
+  openTasks,
+  doneTasks,
+  todayUtcYmd,
+  initialFocusTaskId,
+  tasksLoadError,
+}: CommandCenterClientProps) {
   const [focusActive, setFocusActive] = useState(false)
   const [showAllWhileFocusing, setShowAllWhileFocusing] = useState(false)
 
@@ -43,23 +51,30 @@ export function CommandCenterClient({ workflowId, openTasks, doneTasks, initialF
         </div>
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className={hideNonEssential ? 'lg:col-span-3' : 'lg:col-span-2'}>
+      {/* Don't let the tallest column stretch the others (prevents Tasks height changing when Calendar grows). */}
+      <div className="grid items-start gap-8 lg:grid-cols-3">
+        <div className={hideNonEssential ? 'min-w-0 lg:col-span-3' : 'min-w-0 lg:col-span-2'}>
           <div className="grid gap-6">
+            {hideNonEssential ? null : tasksLoadError ? (
+              <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+                <p className="text-sm font-medium">Tasks aren’t available</p>
+                <p className="mt-1 text-sm text-muted-foreground">{tasksLoadError}</p>
+              </div>
+            ) : (
+              <TaskList workflowId={workflowId} openTasks={openTasks} doneTasks={doneTasks} todayUtcYmd={todayUtcYmd} />
+            )}
+
             <FocusModeCard
               workflowId={workflowId}
               tasks={tasksForFocus}
               initialTaskId={initialFocusTaskId}
               onActiveChange={handleFocusActiveChange}
             />
-
-            {hideNonEssential ? null : <TaskCreateForm workflowId={workflowId} />}
-            {hideNonEssential ? null : <TaskList openTasks={openTasks} doneTasks={doneTasks} />}
           </div>
         </div>
 
         {hideNonEssential ? null : (
-          <div className="grid gap-6">
+          <div className="grid min-w-0 gap-6">
             <CalendarWidget workflowId={workflowId} />
           </div>
         )}
