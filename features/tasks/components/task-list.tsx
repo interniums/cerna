@@ -74,9 +74,11 @@ function bucketOpenTasksUtc(openTasks: Task[], todayUtcYmd: string) {
 function SortableTaskItem({
   task,
   onLocalStatusChange,
+  hideDueDate = false,
 }: {
   task: Task
   onLocalStatusChange: (taskId: string, nextStatus: Task['status']) => void
+  hideDueDate?: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id })
 
@@ -91,7 +93,7 @@ function SortableTaskItem({
 
   return (
     <div ref={setNodeRef} style={style} className={isDragging ? 'pointer-events-none relative z-10 opacity-80' : ''}>
-      <TaskRow task={task} dragHandleProps={handleProps} refreshOnToggle={false} onLocalStatusChange={onLocalStatusChange} />
+      <TaskRow task={task} dragHandleProps={handleProps} refreshOnToggle={false} onLocalStatusChange={onLocalStatusChange} hideDueDate={hideDueDate} />
     </div>
   )
 }
@@ -99,11 +101,19 @@ function SortableTaskItem({
 function StaticTaskItem({
   task,
   onLocalStatusChange,
+  hideDueDate = false,
 }: {
   task: Task
   onLocalStatusChange: (taskId: string, nextStatus: Task['status']) => void
+  hideDueDate?: boolean
 }) {
-  return <TaskRow task={task} refreshOnToggle={false} onLocalStatusChange={onLocalStatusChange} showDragHandlePlaceholder />
+  // Wrap in identical structure to SortableTaskItem to prevent layout shift on hydration.
+  // The wrapper div must exist and use the same layout (no transform/transition yet).
+  return (
+    <div>
+      <TaskRow task={task} refreshOnToggle={false} onLocalStatusChange={onLocalStatusChange} showDragHandlePlaceholder hideDueDate={hideDueDate} />
+    </div>
+  )
 }
 
 export function TaskList({
@@ -339,7 +349,8 @@ export function TaskList({
 
   const canDragDrop = hydrated
   const tabContentClassName =
-    '-mt-2 grid flex-1 min-h-0 content-start gap-2 overflow-y-auto overflow-x-hidden pr-4 py-6 scrollbar-gutter-stable'
+    // Keep panel width stable across tabs by always reserving scrollbar space.
+    '-mt-2 grid w-full flex-1 min-h-0 min-w-0 content-start gap-2 overflow-y-scroll overflow-x-hidden pr-4 py-6 scrollbar-gutter-stable'
 
   return (
     <Card className="flex h-[600px] flex-col gap-1.5 pt-2 pb-0">
@@ -350,7 +361,11 @@ export function TaskList({
         </div>
       </CardHeader>
       <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="min-w-0 min-h-0 flex-1">
+        <Tabs
+          value={activeTab}
+          onValueChange={handleTabChange}
+          className="flex min-h-0 min-w-0 w-full flex-1 flex-col"
+        >
           <TabsList>
             <TabsTrigger value="today">Today</TabsTrigger>
             <TabsTrigger value="other">Other</TabsTrigger>
@@ -368,24 +383,24 @@ export function TaskList({
             value="today"
             className={tabContentClassName}
           >
-            <div className="mx-auto w-full max-w-3xl">
+            <div className="mx-auto w-full max-w-3xl min-w-0">
               {todayTasks.length === 0 ? (
                 <EmptyState message={hasAny ? 'Nothing due today.' : 'No tasks yet.'} />
               ) : (
                 canDragDrop ? (
                   <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleTodayDragEnd}>
                     <SortableContext items={todayTasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-                      <div className="overflow-hidden rounded-lg border border-border/60 bg-card/30 divide-y divide-border/60">
+                      <div className="w-full min-w-0 overflow-hidden rounded-lg border border-border/60 bg-card/30 divide-y divide-border/60">
                         {todayTasks.map((t) => (
-                          <SortableTaskItem key={t.id} task={t} onLocalStatusChange={handleLocalStatusChange} />
+                          <SortableTaskItem key={t.id} task={t} onLocalStatusChange={handleLocalStatusChange} hideDueDate />
                         ))}
                       </div>
                     </SortableContext>
                   </DndContext>
                 ) : (
-                  <div className="overflow-hidden rounded-lg border border-border/60 bg-card/30 divide-y divide-border/60">
+                  <div className="w-full min-w-0 overflow-hidden rounded-lg border border-border/60 bg-card/30 divide-y divide-border/60">
                     {todayTasks.map((t) => (
-                      <StaticTaskItem key={t.id} task={t} onLocalStatusChange={handleLocalStatusChange} />
+                      <StaticTaskItem key={t.id} task={t} onLocalStatusChange={handleLocalStatusChange} hideDueDate />
                     ))}
                   </div>
                 )
@@ -397,14 +412,14 @@ export function TaskList({
             value="other"
             className={tabContentClassName}
           >
-            <div className="mx-auto w-full max-w-3xl">
+            <div className="mx-auto w-full max-w-3xl min-w-0">
               {otherTasks.length === 0 ? (
                 <EmptyState message={hasAny ? 'No other tasks.' : 'No tasks yet.'} />
               ) : (
                 canDragDrop ? (
                   <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleOtherDragEnd}>
                     <SortableContext items={otherTasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-                      <div className="overflow-hidden rounded-lg border border-border/60 bg-card/30 divide-y divide-border/60">
+                      <div className="w-full min-w-0 overflow-hidden rounded-lg border border-border/60 bg-card/30 divide-y divide-border/60">
                         {otherTasks.map((t) => (
                           <SortableTaskItem key={t.id} task={t} onLocalStatusChange={handleLocalStatusChange} />
                         ))}
@@ -412,7 +427,7 @@ export function TaskList({
                     </SortableContext>
                   </DndContext>
                 ) : (
-                  <div className="overflow-hidden rounded-lg border border-border/60 bg-card/30 divide-y divide-border/60">
+                  <div className="w-full min-w-0 overflow-hidden rounded-lg border border-border/60 bg-card/30 divide-y divide-border/60">
                     {otherTasks.map((t) => (
                       <StaticTaskItem key={t.id} task={t} onLocalStatusChange={handleLocalStatusChange} />
                     ))}
@@ -426,14 +441,14 @@ export function TaskList({
             value="done"
             className={tabContentClassName}
           >
-            <div className="mx-auto w-full max-w-3xl">
+            <div className="mx-auto w-full max-w-3xl min-w-0">
               {done.length === 0 ? (
                 <EmptyState message="Nothing completed yet." />
               ) : (
                 canDragDrop ? (
                   <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDoneDragEnd}>
                     <SortableContext items={done.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-                      <div className="overflow-hidden rounded-lg border border-border/60 bg-card/30 divide-y divide-border/60">
+                      <div className="w-full min-w-0 overflow-hidden rounded-lg border border-border/60 bg-card/30 divide-y divide-border/60">
                         {done.map((t) => (
                           <SortableTaskItem key={t.id} task={t} onLocalStatusChange={handleLocalStatusChange} />
                         ))}
@@ -441,7 +456,7 @@ export function TaskList({
                     </SortableContext>
                   </DndContext>
                 ) : (
-                  <div className="overflow-hidden rounded-lg border border-border/60 bg-card/30 divide-y divide-border/60">
+                  <div className="w-full min-w-0 overflow-hidden rounded-lg border border-border/60 bg-card/30 divide-y divide-border/60">
                     {done.map((t) => (
                       <StaticTaskItem key={t.id} task={t} onLocalStatusChange={handleLocalStatusChange} />
                     ))}

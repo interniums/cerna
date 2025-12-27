@@ -66,7 +66,6 @@ function EditForm({
   const [notesValue, setNotesValue] = useState(initialNotes ?? '')
   const [isPinned, setIsPinned] = useState(initialPinned)
   const [isEssential, setIsEssential] = useState(initialEssential)
-  const [isDeleteConfirming, setIsDeleteConfirming] = useState(false)
 
   const urlId = useId()
   const titleId = useId()
@@ -79,11 +78,6 @@ function EditForm({
   useEffect(() => {
     if (state.ok) onSaved()
   }, [onSaved, state.ok])
-
-  useEffect(() => {
-    // Reset confirm UI when a submit succeeds/fails (prevents stale armed state).
-    setIsDeleteConfirming(false)
-  }, [state.ok])
 
   const handlePinnedPressedChange = useCallback(() => {
     setIsPinned((v) => !v)
@@ -118,14 +112,6 @@ function EditForm({
   const handleClearNotesClick = useCallback(() => {
     setNotesValue('')
     queueMicrotask(() => notesInputRef.current?.focus())
-  }, [])
-
-  const handleDeleteClick = useCallback(() => {
-    setIsDeleteConfirming(true)
-  }, [])
-
-  const handleDeleteCancelClick = useCallback(() => {
-    setIsDeleteConfirming(false)
   }, [])
 
   return (
@@ -266,10 +252,19 @@ function EditForm({
             ].join(' ')}
           >
             <span className="inline-flex items-center gap-2">
-              <Star aria-hidden="true" className={isEssential ? 'size-4 text-yellow-500' : 'size-4 text-muted-foreground'} />
+              <Star
+                aria-hidden="true"
+                className={isEssential ? 'size-4 text-yellow-500' : 'size-4 text-muted-foreground'}
+              />
               <span>Add to essentials</span>
             </span>
-            <span className={isEssential ? 'text-xs font-medium text-yellow-600 dark:text-yellow-400' : 'text-xs text-muted-foreground'}>
+            <span
+              className={
+                isEssential
+                  ? 'text-xs font-medium text-yellow-600 dark:text-yellow-400'
+                  : 'text-xs text-muted-foreground'
+              }
+            >
               {isEssential ? 'On' : 'Off'}
             </span>
           </button>
@@ -284,32 +279,15 @@ function EditForm({
 
       <div className="flex flex-col-reverse gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
-          {isDeleteConfirming ? (
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <FormSubmitButton
-                variant="destructive"
-                size="sm"
-                idleText="Delete"
-                pendingText="Deleting…"
-                idleIcon={<Trash2 aria-hidden="true" className="mr-1 size-4" />}
-                aria-label="Confirm delete resource"
-                formAction={confirmDeleteResourceAction.bind(null, resourceId, returnTo)}
-              />
-              <Button type="button" variant="secondary" size="sm" onClick={handleDeleteCancelClick}>
-                Keep
-              </Button>
-              <p className="text-xs text-muted-foreground sm:ml-2">Undo is available for 10 seconds.</p>
-            </div>
-          ) : (
-            <Button
-              type="button"
-              variant="link"
-              className="h-auto p-0 text-muted-foreground hover:text-foreground"
-              onClick={handleDeleteClick}
-            >
-              Delete resource
-            </Button>
-          )}
+          <FormSubmitButton
+            variant="link"
+            className="h-auto p-0 text-muted-foreground hover:text-foreground"
+            idleText="Delete resource"
+            pendingText="Deleting…"
+            idleIcon={<Trash2 aria-hidden="true" className="mr-1 size-4" />}
+            aria-label="Delete resource"
+            formAction={confirmDeleteResourceAction.bind(null, resourceId, returnTo)}
+          />
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">

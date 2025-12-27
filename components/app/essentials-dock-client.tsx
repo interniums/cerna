@@ -18,7 +18,12 @@ import {
   useSensors,
   type DragEndEvent,
 } from '@dnd-kit/core'
-import { SortableContext, arrayMove, horizontalListSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
+import {
+  SortableContext,
+  arrayMove,
+  horizontalListSortingStrategy,
+  sortableKeyboardCoordinates,
+} from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useSortable } from '@dnd-kit/sortable'
 
@@ -83,7 +88,14 @@ function DockIcon({ item }: { item: EssentialsItem }) {
                 const faviconSrc = getResourceFaviconSrc(item)
                 return faviconSrc ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={faviconSrc} alt="" className="size-5" loading="lazy" referrerPolicy="no-referrer" draggable={false} />
+                  <img
+                    src={faviconSrc}
+                    alt=""
+                    className="size-5"
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                    draggable={false}
+                  />
                 ) : (
                   <Link2 aria-hidden="true" className="size-4 text-muted-foreground" />
                 )
@@ -269,12 +281,9 @@ export function EssentialsDockClient({
     [order, schedulePersistOrder]
   )
 
-  const handleDockDragStart = useCallback(
-    () => {
-      suppressClickNow()
-    },
-    [suppressClickNow]
-  )
+  const handleDockDragStart = useCallback(() => {
+    suppressClickNow()
+  }, [suppressClickNow])
 
   const handleDockDragEndWithCleanup = useCallback(
     (event: DragEndEvent) => {
@@ -302,22 +311,25 @@ export function EssentialsDockClient({
     setCanScrollRight(remaining > 1)
   }, [])
 
-  const beginDrag = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.button !== 0) return
-    const el = viewportRef.current
-    if (!el) return
-    // If the user is dragging an icon, let DnD handle it (don't start scroll-drag).
-    if (dndReady && e.target instanceof HTMLElement && e.target.closest('[data-essentials-dnd-item]')) return
+  const beginDrag = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (e.button !== 0) return
+      const el = viewportRef.current
+      if (!el) return
+      // If the user is dragging an icon, let DnD handle it (don't start scroll-drag).
+      if (dndReady && e.target instanceof HTMLElement && e.target.closest('[data-essentials-dnd-item]')) return
 
-    pointerIdRef.current = e.pointerId
-    startXRef.current = e.clientX
-    startScrollLeftRef.current = el.scrollLeft
-    didDragRef.current = false
-    setIsDragging(true)
+      pointerIdRef.current = e.pointerId
+      startXRef.current = e.clientX
+      startScrollLeftRef.current = el.scrollLeft
+      didDragRef.current = false
+      setIsDragging(true)
 
-    // Keep receiving move events even if pointer leaves the element.
-    el.setPointerCapture(e.pointerId)
-  }, [dndReady])
+      // Keep receiving move events even if pointer leaves the element.
+      el.setPointerCapture(e.pointerId)
+    },
+    [dndReady]
+  )
 
   const updateDrag = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
@@ -408,8 +420,6 @@ export function EssentialsDockClient({
 
   return (
     <div className="w-full">
-      <p className="mb-1 px-1 text-[11px] font-medium text-muted-foreground">Quick access</p>
-
       <div className="flex w-full items-center gap-2">
         <div className="min-w-0 flex-1">
           <div className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm backdrop-blur-md supports-backdrop-filter:bg-card/80 dark:border-white/15 dark:shadow-md">
@@ -419,7 +429,7 @@ export function EssentialsDockClient({
                 size="icon-xs"
                 variant="ghost"
                 className="cerna-hover-control"
-                aria-label="Scroll essentials left"
+                aria-label="Scroll shortcuts left"
                 disabled={!canScrollLeft}
                 onClick={handleScrollLeft}
               >
@@ -483,7 +493,7 @@ export function EssentialsDockClient({
                 size="icon-xs"
                 variant="ghost"
                 className="cerna-hover-control"
-                aria-label="Scroll essentials right"
+                aria-label="Scroll shortcuts right"
                 disabled={!canScrollRight}
                 onClick={handleScrollRight}
               >
@@ -498,15 +508,15 @@ export function EssentialsDockClient({
           <EssentialsAddDialog
             categories={categories}
             workflowId={workflowId}
-            triggerLabel="Add to quick access"
-            triggerTooltip="Add to quick access"
+            triggerLabel="Add shortcut"
+            triggerTooltip="Add a shortcut"
             trigger={
               <Button
                 type="button"
                 size="icon-sm"
                 variant="secondary"
                 className="h-[60px] w-[60px] rounded-2xl"
-                aria-label="Add to quick access"
+                aria-label="Add a shortcut"
               >
                 <Plus aria-hidden="true" className="size-4" />
               </Button>

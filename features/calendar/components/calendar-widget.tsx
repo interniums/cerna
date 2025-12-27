@@ -1,7 +1,15 @@
 'use client'
 
 import Link from 'next/link'
-import { useActionState, useCallback, useEffect, useMemo, useState, type KeyboardEvent, type SyntheticEvent } from 'react'
+import {
+  useActionState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type KeyboardEvent,
+  type SyntheticEvent,
+} from 'react'
 import { toast } from 'sonner'
 import { ExternalLink, Link2, MoreHorizontal, RefreshCcw, Settings2, Unlink2 } from 'lucide-react'
 
@@ -14,7 +22,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { FormSubmitButton } from '@/components/forms/form-submit-button'
 import { FormSubmitSwitch } from '@/components/forms/form-submit-switch'
-import { disconnectCalendarAccountAction, toggleWorkflowCalendarVisibilityAction, type CalendarActionState } from '@/features/calendar/actions'
+import {
+  disconnectCalendarAccountAction,
+  toggleWorkflowCalendarVisibilityAction,
+  type CalendarActionState,
+} from '@/features/calendar/actions'
 
 type ApiEvent = {
   id: string
@@ -38,9 +50,7 @@ type ApiAccount = {
   lastError: string | null
 }
 
-type EventsResponse =
-  | { ok: true; accounts: ApiAccount[]; events: ApiEvent[] }
-  | { ok: false; message: string }
+type EventsResponse = { ok: true; accounts: ApiAccount[]; events: ApiEvent[] } | { ok: false; message: string }
 
 const initialState: CalendarActionState = { ok: false, message: '', nonce: 0 }
 
@@ -48,12 +58,7 @@ type DisconnectDialogState = { open: boolean; account: ApiAccount | null }
 
 function GoogleMark({ className }: { className?: string }) {
   return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      className={cn('size-4', className)}
-      xmlns="http://www.w3.org/2000/svg"
-    >
+    <svg aria-hidden="true" viewBox="0 0 24 24" className={cn('size-4', className)} xmlns="http://www.w3.org/2000/svg">
       <path
         d="M21.6 12.27c0-.76-.07-1.49-.2-2.18H12v4.12h5.38a4.6 4.6 0 0 1-2 3.01v2.7h3.24c1.9-1.75 2.98-4.33 2.98-7.65Z"
         fill="#4285F4"
@@ -76,12 +81,7 @@ function GoogleMark({ className }: { className?: string }) {
 
 function MicrosoftMark({ className }: { className?: string }) {
   return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      className={cn('size-4', className)}
-      xmlns="http://www.w3.org/2000/svg"
-    >
+    <svg aria-hidden="true" viewBox="0 0 24 24" className={cn('size-4', className)} xmlns="http://www.w3.org/2000/svg">
       <path d="M3 3h8v8H3V3Z" fill="#F25022" />
       <path d="M13 3h8v8h-8V3Z" fill="#7FBA00" />
       <path d="M3 13h8v8H3v-8Z" fill="#00A4EF" />
@@ -90,20 +90,66 @@ function MicrosoftMark({ className }: { className?: string }) {
   )
 }
 
-function formatEventTime(startIso: string, isAllDay: boolean) {
+/** Format time for the sidebar column - stacked layout for mobile */
+function formatEventSidebarTime(startIso: string, isAllDay: boolean): { time: string; period: string } {
+  if (isAllDay) return { time: 'All', period: 'day' }
   const t = Date.parse(startIso)
-  if (!Number.isFinite(t)) return ''
+  if (!Number.isFinite(t)) return { time: '--:--', period: '' }
   const d = new Date(t)
-  if (isAllDay) return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
-  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+  const hours = d.getHours()
+  const minutes = d.getMinutes().toString().padStart(2, '0')
+  const hour12 = hours % 12 || 12
+  const period = hours >= 12 ? 'PM' : 'AM'
+  return { time: `${hour12}:${minutes}`, period }
 }
 
-function formatEventSidebarTime(startIso: string, isAllDay: boolean) {
-  if (isAllDay) return 'All day'
+/** Calculate duration between start and end */
+function formatDuration(startIso: string, endIso: string | null): string | null {
+  if (!endIso) return null
+  const startMs = Date.parse(startIso)
+  const endMs = Date.parse(endIso)
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) return null
+  const diffMs = endMs - startMs
+  if (diffMs <= 0) return null
+  const diffMins = Math.round(diffMs / 60000)
+  if (diffMins < 60) return `${diffMins}m`
+  const hours = Math.floor(diffMins / 60)
+  const mins = diffMins % 60
+  if (mins === 0) return `${hours}h`
+  return `${hours}h ${mins}m`
+}
+
+/** Get date label for grouping: "Today", "Tomorrow", or formatted date */
+function getDateLabel(startIso: string): string {
   const t = Date.parse(startIso)
   if (!Number.isFinite(t)) return ''
-  const d = new Date(t)
-  return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+  const eventDate = new Date(t)
+  const now = new Date()
+
+  const eventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate())
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const tomorrow = new Date(today.getTime() + 86400000)
+
+  if (eventDay.getTime() === today.getTime()) return 'Today'
+  if (eventDay.getTime() === tomorrow.getTime()) return 'Tomorrow'
+  return eventDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
+}
+
+/** Group events by date label */
+function groupEventsByDate(events: ApiEvent[]): { label: string; events: ApiEvent[] }[] {
+  const groups: Map<string, ApiEvent[]> = new Map()
+
+  for (const event of events) {
+    const label = getDateLabel(event.start)
+    const existing = groups.get(label)
+    if (existing) {
+      existing.push(event)
+    } else {
+      groups.set(label, [event])
+    }
+  }
+
+  return Array.from(groups.entries()).map(([label, evts]) => ({ label, events: evts }))
 }
 
 function openInNewTab(url: string) {
@@ -137,28 +183,81 @@ function getProviderLabel(provider: ApiEvent['provider']) {
   return provider === 'microsoft' ? 'Microsoft' : 'Google'
 }
 
-function CalendarWidgetSkeleton() {
+function CalendarEventSkeleton() {
   return (
-    <div className="grid gap-2">
-      <Skeleton className="h-4 w-28" />
-      <div className="flex flex-col gap-1">
-        {Array.from({ length: 3 }).map((_, idx) => (
-          <div key={idx} className="rounded-md px-3 py-2">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex min-w-0 flex-1 items-center gap-3">
-                <Skeleton className="h-4 w-16" />
-                <div className="min-w-0 flex-1">
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="mt-2 h-3 w-40" />
-                </div>
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <Skeleton className="h-7 w-7 rounded-md" />
-              </div>
-            </div>
-          </div>
-        ))}
+    <div className="flex items-start gap-3 rounded-md px-2 py-2">
+      {/* Time column - matches: w-10, stacked time + period */}
+      <div className="w-10 shrink-0 text-center">
+        <Skeleton className="h-5 w-9 mx-auto" />
+        <Skeleton className="h-4 w-5 mx-auto" />
       </div>
+
+      <div className="min-w-0 flex-1">
+        {/* Title */}
+        <Skeleton className="h-5 w-full" />
+        <Skeleton className="h-5 w-3/4 mt-0.5" />
+
+        {/* Meta line */}
+        <div className="mt-0.5 flex items-center gap-1.5">
+          <div className="size-4 flex items-center justify-center shrink-0">
+            <Skeleton className="size-2.5 rounded-full" />
+          </div>
+          <Skeleton className="h-4 w-12" />
+          <Skeleton className="h-4 w-8" />
+        </div>
+      </div>
+
+      {/* Actions slot */}
+      <div className="hidden sm:flex shrink-0 items-center gap-1">
+        <Skeleton className="size-7 rounded-md" />
+      </div>
+    </div>
+  )
+}
+
+function CalendarWidgetSkeleton() {
+  // Matches the real EventsList + DateHeader + CalendarEventRow layout exactly
+  return (
+    <div className="flex flex-col gap-1">
+      {/* First group - matches EventsList structure */}
+      <div>
+        {/* DateHeader skeleton - same classes as real DateHeader */}
+        <div className="px-2 pt-2 pb-1 first:pt-0">
+          <Skeleton className="h-4 w-12" />
+        </div>
+        {/* Events container - matches: flex flex-col gap-1 */}
+        <div className="flex flex-col gap-1">
+          <CalendarEventSkeleton />
+          <CalendarEventSkeleton />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DateHeader({ label }: { label: string }) {
+  return (
+    <div className="px-2 pt-2 pb-1 first:pt-0">
+      <p className="text-[11px] leading-4 font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+    </div>
+  )
+}
+
+function EventsList({ events }: { events: ApiEvent[] }) {
+  const groupedEvents = useMemo(() => groupEventsByDate(events), [events])
+
+  return (
+    <div className="flex flex-col gap-1">
+      {groupedEvents.map((group) => (
+        <div key={group.label}>
+          <DateHeader label={group.label} />
+          <div className="flex flex-col gap-1">
+            {group.events.map((e) => (
+              <CalendarEventRow key={`${e.accountId}:${e.id}`} event={e} />
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
@@ -166,9 +265,10 @@ function CalendarWidgetSkeleton() {
 function CalendarEventRow({ event }: { event: ApiEvent }) {
   const primaryUrl = getPrimaryEventUrl(event)
   const isClickable = Boolean(primaryUrl)
-  const sidebarTime = formatEventSidebarTime(event.start, event.isAllDay)
+  const { time, period } = formatEventSidebarTime(event.start, event.isAllDay)
   const providerLabel = getProviderLabel(event.provider)
   const dotClassName = getAccountDotClass(event.accountId)
+  const duration = formatDuration(event.start, event.end)
 
   const handleRowClick = useCallback(() => {
     if (!primaryUrl) return
@@ -205,7 +305,7 @@ function CalendarEventRow({ event }: { event: ApiEvent }) {
       tabIndex={isClickable ? 0 : undefined}
       aria-label={isClickable ? `Open calendar event: ${event.title}` : undefined}
       className={cn(
-        'group flex items-start justify-between gap-3 rounded-md px-3 py-2 transition-colors focus-within:ring-1 focus-within:ring-ring/40',
+        'group flex min-w-0 items-start gap-3 rounded-md px-2 py-2 transition-colors focus-within:ring-1 focus-within:ring-ring/40',
         isClickable
           ? 'cursor-pointer hover:bg-accent/40 dark:hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background'
           : ''
@@ -213,35 +313,46 @@ function CalendarEventRow({ event }: { event: ApiEvent }) {
       onClick={handleRowClick}
       onKeyDown={handleRowKeyDown}
     >
-      <div className="flex min-w-0 flex-1 items-start gap-3">
-        <p className="w-16 shrink-0 pt-0.5 text-sm font-mono text-foreground/90">{sidebarTime}</p>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-foreground/90">{event.title}</p>
-          <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  className="inline-flex size-4 items-center justify-center rounded-full"
-                  aria-label={`Calendar account: ${event.accountEmail}`}
-                  onClick={stopRowClickPropagation}
-                  onKeyDown={stopRowClickPropagation}
-                >
-                  <span className={cn('size-2.5 rounded-full ring-1 ring-border/60', dotClassName)} />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent sideOffset={6}>{event.accountEmail}</TooltipContent>
-            </Tooltip>
-            <span>{providerLabel}</span>
-            <span aria-hidden="true">·</span>
-            <span className="truncate">{formatEventTime(event.start, event.isAllDay)}</span>
-          </div>
+      {/* Time column - stacked layout for compact display */}
+      <div className="w-10 shrink-0 text-center">
+        <p className="text-sm font-mono text-muted-foreground leading-5">{time}</p>
+        <p className="text-[10px] font-mono text-muted-foreground/70 leading-4">{period}</p>
+      </div>
+
+      {/* Content - flexible, allows wrapping */}
+      <div className="min-w-0 flex-1">
+        {/* Title - semibold for visual hierarchy, allow 2 lines */}
+        <p className="text-sm font-semibold text-foreground leading-5 line-clamp-2">{event.title}</p>
+
+        {/* Metadata row - provider + duration (no redundant time) */}
+        <div className="mt-0.5 flex items-center gap-1.5 text-xs leading-4 text-muted-foreground">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex size-4 shrink-0 items-center justify-center rounded-full"
+                aria-label={`Calendar account: ${event.accountEmail}`}
+                onClick={stopRowClickPropagation}
+                onKeyDown={stopRowClickPropagation}
+              >
+                <span className={cn('size-2.5 rounded-full ring-1 ring-border/60', dotClassName)} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent sideOffset={6}>{event.accountEmail}</TooltipContent>
+          </Tooltip>
+          <span>{providerLabel}</span>
+          {duration ? (
+            <>
+              <span aria-hidden="true">·</span>
+              <span>{duration}</span>
+            </>
+          ) : null}
         </div>
       </div>
 
-      {/* Hover-only actions. Prevent them from double-triggering the row click. */}
+      {/* Hover-only actions - visible on larger screens */}
       <div
-        className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
+        className="hidden sm:flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
         onClick={stopRowClickPropagation}
         onKeyDown={stopRowClickPropagation}
       >
@@ -285,20 +396,36 @@ export function CalendarWidget({ workflowId }: { workflowId: string }) {
       .map((a) => ({ id: a.id, provider: a.provider, email: a.email, lastError: a.lastError as string }))
   }, [accounts])
 
-  const refetch = useCallback(async (mode: 'initial' | 'refresh' = 'refresh') => {
-    if (mode === 'initial') {
-      setLoading(true)
-      setError(null)
-      setRefreshError(null)
-    } else {
-      setRefreshing(true)
-      setRefreshError(null)
-    }
-    try {
-      const res = await fetch(`/api/calendar/events?workflowId=${encodeURIComponent(workflowId)}`, { cache: 'no-store' })
-      const json = (await res.json().catch(() => null)) as EventsResponse | null
-      if (!json || !json.ok) {
-        const msg = json && !json.ok ? json.message : 'Couldn’t load calendar.'
+  const refetch = useCallback(
+    async (mode: 'initial' | 'refresh' = 'refresh') => {
+      if (mode === 'initial') {
+        setLoading(true)
+        setError(null)
+        setRefreshError(null)
+      } else {
+        setRefreshing(true)
+        setRefreshError(null)
+      }
+      try {
+        const res = await fetch(`/api/calendar/events?workflowId=${encodeURIComponent(workflowId)}`, {
+          cache: 'no-store',
+        })
+        const json = (await res.json().catch(() => null)) as EventsResponse | null
+        if (!json || !json.ok) {
+          const msg = json && !json.ok ? json.message : 'Couldn’t load calendar.'
+          if (mode === 'initial') {
+            setError(msg)
+            setAccounts([])
+            setEvents([])
+          } else {
+            setRefreshError(msg)
+          }
+        } else {
+          setAccounts(json.accounts)
+          setEvents(json.events)
+        }
+      } catch {
+        const msg = 'Couldn’t load calendar.'
         if (mode === 'initial') {
           setError(msg)
           setAccounts([])
@@ -306,24 +433,13 @@ export function CalendarWidget({ workflowId }: { workflowId: string }) {
         } else {
           setRefreshError(msg)
         }
-      } else {
-        setAccounts(json.accounts)
-        setEvents(json.events)
+      } finally {
+        if (mode === 'initial') setLoading(false)
+        else setRefreshing(false)
       }
-    } catch {
-      const msg = 'Couldn’t load calendar.'
-      if (mode === 'initial') {
-        setError(msg)
-        setAccounts([])
-        setEvents([])
-      } else {
-        setRefreshError(msg)
-      }
-    } finally {
-      if (mode === 'initial') setLoading(false)
-      else setRefreshing(false)
-    }
-  }, [workflowId])
+    },
+    [workflowId]
+  )
 
   useEffect(() => {
     void refetch('initial')
@@ -380,8 +496,8 @@ export function CalendarWidget({ workflowId }: { workflowId: string }) {
   }, [connected, refetch])
 
   return (
-    <Card className="pt-2">
-      <CardHeader className="pb-3 pt-2">
+    <Card className="min-w-0 max-w-full overflow-hidden pt-2">
+      <CardHeader className="pt-2 px-4 sm:px-6">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
             <CardTitle className="text-sm truncate">Calendar</CardTitle>
@@ -414,7 +530,13 @@ export function CalendarWidget({ workflowId }: { workflowId: string }) {
       </CardHeader>
 
       {/* Reserve space when skeleton resolves into a short list to avoid layout jumps. */}
-      <CardContent className={cn('grid gap-3', shouldStabilizeHeight ? 'min-h-[184px]' : '')}>
+      <CardContent
+        className={cn(
+          'grid gap-3 min-w-0 px-4 sm:px-6',
+          // A touch taller than the skeleton/content to avoid sub-pixel font metric differences causing a jump.
+          shouldStabilizeHeight ? 'min-h-[216px]' : ''
+        )}
+      >
         {refreshError ? (
           <p className="text-xs text-muted-foreground" role="status" aria-live="polite">
             {refreshError}
@@ -472,7 +594,7 @@ export function CalendarWidget({ workflowId }: { workflowId: string }) {
             {enabledErrors.length > 0 ? (
               <>
                 <p className="text-sm text-destructive" role="status" aria-live="polite">
-                  Couldn’t load events for {enabledErrors.length} account{enabledErrors.length === 1 ? '' : 's'}.
+                  Couldn&apos;t load events for {enabledErrors.length} account{enabledErrors.length === 1 ? '' : 's'}.
                 </p>
                 <p className="text-xs text-muted-foreground">{enabledErrors[0].lastError}</p>
                 <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
@@ -482,19 +604,11 @@ export function CalendarWidget({ workflowId }: { workflowId: string }) {
                 </div>
               </>
             ) : (
-              <>
-                <p className="text-sm text-muted-foreground">No upcoming meetings.</p>
-                <p className="text-xs text-muted-foreground">{settingsSummary}</p>
-              </>
+              <p className="text-sm text-muted-foreground">No upcoming meetings.</p>
             )}
           </div>
         ) : (
-          <div className="flex flex-col gap-1">
-            {events.map((e) => (
-              <CalendarEventRow key={`${e.accountId}:${e.id}`} event={e} />
-            ))}
-            <p className="text-xs text-muted-foreground">{settingsSummary}</p>
-          </div>
+          <EventsList events={events} />
         )}
 
         <Dialog open={open} onOpenChange={setOpen}>
@@ -521,10 +635,17 @@ export function CalendarWidget({ workflowId }: { workflowId: string }) {
                         <input type="hidden" name="workflowId" value={workflowId} />
                         <input type="hidden" name="accountId" value={a.id} />
                         <input type="hidden" name="enabled" value={a.enabled ? 'false' : 'true'} />
-                        <span id={`show-in-workflow-${a.id}`} className="sr-only sm:not-sr-only text-xs text-muted-foreground whitespace-nowrap">
+                        <span
+                          id={`show-in-workflow-${a.id}`}
+                          className="sr-only sm:not-sr-only text-xs text-muted-foreground whitespace-nowrap"
+                        >
                           Show in workflow
                         </span>
-                        <FormSubmitSwitch checked={a.enabled} aria-labelledby={`show-in-workflow-${a.id}`} pendingLabel="Saving…" />
+                        <FormSubmitSwitch
+                          checked={a.enabled}
+                          aria-labelledby={`show-in-workflow-${a.id}`}
+                          pendingLabel="Saving…"
+                        />
                       </form>
 
                       <DropdownMenu>
@@ -542,9 +663,11 @@ export function CalendarWidget({ workflowId }: { workflowId: string }) {
                           {a.lastError ? (
                             <DropdownMenuItem asChild>
                               <Link
-                                href={`/${a.provider === 'microsoft' ? 'api/microsoft-calendar/connect' : 'api/google-calendar/connect'}?returnTo=${encodeURIComponent(
-                                  `/app/w/${workflowId}`
-                                )}`}
+                                href={`/${
+                                  a.provider === 'microsoft'
+                                    ? 'api/microsoft-calendar/connect'
+                                    : 'api/google-calendar/connect'
+                                }?returnTo=${encodeURIComponent(`/app/w/${workflowId}`)}`}
                               >
                                 Reconnect
                               </Link>
@@ -600,8 +723,10 @@ export function CalendarWidget({ workflowId }: { workflowId: string }) {
                   <DialogTitle>Disconnect account?</DialogTitle>
                   <DialogDescription>
                     This removes access for{' '}
-                    <span className="font-medium text-foreground">{disconnectDialog.account?.email ?? 'this account'}</span>. You can
-                    reconnect anytime.
+                    <span className="font-medium text-foreground">
+                      {disconnectDialog.account?.email ?? 'this account'}
+                    </span>
+                    . You can reconnect anytime.
                   </DialogDescription>
                 </DialogHeader>
 
@@ -629,5 +754,3 @@ export function CalendarWidget({ workflowId }: { workflowId: string }) {
     </Card>
   )
 }
-
-

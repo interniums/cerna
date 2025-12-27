@@ -93,7 +93,11 @@ function EssentialToggle({ resourceId, isEssential }: { resourceId: string; isEs
             aria-label={label}
             pendingLabel={label}
             idleIcon={
-              isEssential ? <Star aria-hidden="true" className="text-yellow-500" fill="currentColor" /> : <Star aria-hidden="true" />
+              isEssential ? (
+                <Star aria-hidden="true" className="text-yellow-500" fill="currentColor" />
+              ) : (
+                <Star aria-hidden="true" />
+              )
             }
           />
         </TooltipTrigger>
@@ -124,7 +128,9 @@ function ResourceRow({
 
   return (
     <Card
-      className={`cerna-hover-card group h-full ${compact ? 'min-h-[96px]' : 'min-h-[112px]'} max-w-full min-w-0 p-0 motion-reduce:transition-none`}
+      className={`cerna-hover-card group h-full ${
+        compact ? 'min-h-[96px]' : 'min-h-[112px]'
+      } max-w-full min-w-0 p-0 motion-reduce:transition-none`}
     >
       <div className="flex h-full max-w-full min-w-0 items-stretch gap-0">
         {showDragHandle ? (
@@ -148,16 +154,26 @@ function ResourceRow({
           target="_blank"
           rel="noopener noreferrer"
           aria-label={`Open ${getPrimaryText(r)}`}
-          className={`cerna-hover-card min-w-0 flex-1 ${showDragHandle ? '' : 'rounded-l-xl'} ${compact ? 'p-3' : 'p-4'} outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50`}
+          className={`cerna-hover-card min-w-0 flex-1 ${showDragHandle ? '' : 'rounded-l-xl'} ${
+            compact ? 'p-3' : 'p-4'
+          } outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50`}
         >
           <div className="flex h-full min-w-0 items-center gap-3">
             <div
-              className={`flex ${compact ? 'size-9' : 'size-10'} shrink-0 self-center items-center justify-center overflow-hidden rounded-md border bg-muted`}
+              className={`flex ${
+                compact ? 'size-9' : 'size-10'
+              } shrink-0 self-center items-center justify-center overflow-hidden rounded-md border bg-muted`}
             >
               {/* Icons: prefer favicon over OG/image tiles for consistency. */}
               {faviconSrc ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={faviconSrc} alt="" className={compact ? 'size-4' : 'size-5'} loading="lazy" referrerPolicy="no-referrer" />
+                <img
+                  src={faviconSrc}
+                  alt=""
+                  className={compact ? 'size-4' : 'size-5'}
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                />
               ) : (
                 <Link2 aria-hidden="true" className="size-4 text-muted-foreground" />
               )}
@@ -165,7 +181,9 @@ function ResourceRow({
 
             <div className="min-w-0 flex-1 flex flex-col">
               <div className="flex flex-wrap items-center gap-2">
-                <span className={`truncate font-medium text-foreground ${compact ? 'text-[13px]' : 'text-sm'}`}>{getPrimaryText(r)}</span>
+                <span className={`truncate font-medium text-foreground ${compact ? 'text-[13px]' : 'text-sm'}`}>
+                  {getPrimaryText(r)}
+                </span>
                 {r.is_pinned ? (
                   <Badge
                     variant="outline"
@@ -177,7 +195,9 @@ function ResourceRow({
               </div>
 
               {r.notes ? (
-                <p className={`mt-1 line-clamp-2 text-muted-foreground ${compact ? 'text-xs' : 'text-sm'}`}>{r.notes}</p>
+                <p className={`mt-1 line-clamp-2 text-muted-foreground ${compact ? 'text-xs' : 'text-sm'}`}>
+                  {r.notes}
+                </p>
               ) : null}
 
               <div className="mt-2 flex min-w-0">
@@ -196,7 +216,9 @@ function ResourceRow({
 
         {/* Control rail (separate from the link). */}
         <div
-          className={`flex ${compact ? 'w-12' : 'w-14'} shrink-0 flex-col items-center justify-center gap-1.5 rounded-r-xl border-l border-border/60 px-2 py-2`}
+          className={`flex ${
+            compact ? 'w-12' : 'w-14'
+          } shrink-0 flex-col items-center justify-center gap-1.5 rounded-r-xl border-l border-border/60 px-2 py-2`}
         >
           <EssentialToggle resourceId={r.id} isEssential={r.is_essential} />
 

@@ -155,7 +155,8 @@
 
   .cerna-hover-control {
     /* No bg by default; bg appears on hover. */
-    @apply bg-transparent shadow-none transition-[box-shadow,background-color,color] duration-150 ease-out hover:bg-accent hover:text-accent-foreground hover:shadow-sm dark:hover:bg-white/15 dark:hover:text-foreground dark:hover:shadow-sm dark:hover:ring-1 dark:hover:ring-white/15;
+    /* Use inset ring (not outer shadow) to avoid clipping inside rounded/overflow-hidden containers. */
+    @apply bg-transparent shadow-none transition-[background-color,color,box-shadow] duration-150 ease-out hover:bg-accent hover:text-accent-foreground hover:ring-1 hover:ring-inset hover:ring-border/50 dark:hover:bg-white/15 dark:hover:text-foreground dark:hover:ring-white/15;
   }
 
   /* Hide scrollbars but keep scrolling (cross-browser). */

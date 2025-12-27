@@ -3,7 +3,7 @@
 import { useActionState, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { X } from 'lucide-react'
+import { Loader2, Trash2, X } from 'lucide-react'
 
 import type { Task } from '@/lib/db/tasks'
 import { updateTaskAction, type TaskActionState } from '@/features/tasks/actions'
@@ -53,10 +53,14 @@ export function TaskEditForm({
   task,
   onDone,
   onRequestDelete,
+  isDeleting = false,
+  deleteErrorMessage = '',
 }: {
   task: Task
   onDone: () => void
   onRequestDelete?: () => void
+  isDeleting?: boolean
+  deleteErrorMessage?: string
 }) {
   const router = useRouter()
   const [state, formAction] = useActionState(updateTaskAction, initialState)
@@ -188,7 +192,7 @@ export function TaskEditForm({
   }, [onDone])
 
   const handleRequestDeleteClick = useCallback(() => {
-    // Parent decides how to confirm/delete (keeps this form focused on edits).
+    // Parent owns delete behavior (keeps this form focused on edits).
     onRequestDelete?.()
   }, [onRequestDelete])
 
@@ -413,9 +417,27 @@ export function TaskEditForm({
               variant="link"
               className="h-auto p-0 text-muted-foreground hover:text-foreground"
               onClick={handleRequestDeleteClick}
+              disabled={isDeleting}
+              aria-disabled={isDeleting}
+              aria-label={isDeleting ? 'Deleting task' : 'Delete task'}
             >
-              Delete task
+              {isDeleting ? (
+                <>
+                  <Loader2 aria-hidden="true" className="mr-2 size-4 animate-spin" />
+                  Deleting…
+                </>
+              ) : (
+                <>
+                  <Trash2 aria-hidden="true" className="mr-2 size-4" />
+                  Delete task
+                </>
+              )}
             </Button>
+          ) : null}
+          {!isDeleting && deleteErrorMessage ? (
+            <p className="text-sm text-destructive" role="status" aria-live="polite">
+              {deleteErrorMessage}
+            </p>
           ) : null}
         </div>
 

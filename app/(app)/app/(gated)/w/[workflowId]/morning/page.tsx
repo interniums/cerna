@@ -21,15 +21,15 @@ export default async function MorningBriefingPage({ params }: MorningBriefingPag
 
   return (
     <div className="flex flex-col">
-      <div className="flex flex-col gap-3 pr-4 pb-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 pb-4 lg:pr-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Morning briefing</h1>
       </div>
 
-      <div className="pr-4">
+      <div className="lg:pr-4">
         <Separator />
       </div>
 
-      <div className="pr-4 pt-4 pb-6">
+      <div className="pt-4 pb-6 lg:pr-4">
         <PageViewTracker workflowId={workflowId} name="view_morning" />
         <MorningBriefing workflowId={workflowId} overdue={overdue} today={today} noDue={noDue} pinned={pinned} recent={recent} />
       </div>

@@ -1,10 +1,14 @@
 import { AppSidebar } from '@/components/app/app-sidebar'
 import { EssentialsDock } from '@/components/app/essentials-dock'
+import { WorkflowShellClient } from '@/components/app/workflow-shell-client'
 import { UndoToast } from '@/features/resources/components/undo-toast'
 import { requireServerUser } from '@/lib/supabase/auth'
 import { getWorkflowById } from '@/lib/db/workflows'
 import { getDefaultWorkflowId } from '@/lib/db/workflows'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
+
+const SIDEBAR_COOKIE_KEY = 'cerna-sidebar-collapsed'
 
 type WorkflowLayoutProps = {
   children: React.ReactNode
@@ -21,21 +25,19 @@ export default async function WorkflowScopedLayout({ children, params }: Workflo
       redirect(`/app/w/${fallbackId}`)
     })())
 
+  // Next.js 16 `cookies()` is async in RSC/Turbopack.
+  const cookieStore = await cookies()
+  const initialSidebarCollapsed = cookieStore.get(SIDEBAR_COOKIE_KEY)?.value === 'true'
+
   return (
-    <div
-      className="grid h-full min-h-0 min-w-0 gap-8 overflow-x-hidden px-4 pt-4 pb-0 sm:grid-cols-[15rem_minmax(0,1fr)] sm:px-6"
-      data-workflow-theme={workflow.theme}
+    <WorkflowShellClient
+      workflowTheme={workflow.theme}
+      initialSidebarCollapsed={initialSidebarCollapsed}
+      sidebar={<AppSidebar userId={user.id} workflowId={workflowId} />}
+      header={<EssentialsDock userId={user.id} workflowId={workflowId} />}
+      afterHeader={<UndoToast />}
     >
-      <AppSidebar userId={user.id} workflowId={workflowId} />
-      <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
-        <div className="mb-3 min-w-0 pr-4">
-          <EssentialsDock userId={user.id} workflowId={workflowId} />
-        </div>
-        <UndoToast />
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">{children}</div>
-      </div>
-    </div>
+      {children}
+    </WorkflowShellClient>
   )
 }
-
-

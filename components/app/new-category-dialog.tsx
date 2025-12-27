@@ -72,7 +72,13 @@ function NewCategoryDialogBody({ onCreated, workflowId }: NewCategoryDialogBodyP
   )
 }
 
-export function NewCategoryDialog({ workflowId }: { workflowId: string }) {
+type NewCategoryDialogProps = {
+  workflowId: string
+  /** When true, uses side="right" for tooltip (used in collapsed sidebar) */
+  iconOnly?: boolean
+}
+
+export function NewCategoryDialog({ workflowId, iconOnly = false }: NewCategoryDialogProps) {
   const router = useRouter()
   const [resetKey, setResetKey] = useState(0)
   const [open, setOpen] = useState(false)
@@ -94,7 +100,7 @@ export function NewCategoryDialog({ workflowId }: { workflowId: string }) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <Tooltip>
+      <Tooltip delayDuration={iconOnly ? 0 : undefined}>
         <TooltipTrigger asChild>
           <Button
             type="button"
@@ -108,7 +114,9 @@ export function NewCategoryDialog({ workflowId }: { workflowId: string }) {
             <Plus aria-hidden="true" />
           </Button>
         </TooltipTrigger>
-        <TooltipContent sideOffset={6}>New section</TooltipContent>
+        <TooltipContent side={iconOnly ? 'right' : 'bottom'} sideOffset={iconOnly ? 8 : 6}>
+          New section
+        </TooltipContent>
       </Tooltip>
       <NewCategoryDialogBody key={resetKey} onCreated={handleCreated} workflowId={workflowId} />
     </Dialog>

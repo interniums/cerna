@@ -4,15 +4,15 @@ import { Skeleton } from '@/components/ui/skeleton'
 export default function Loading() {
   return (
     <div className="flex flex-col">
-      <div className="flex flex-col gap-3 pr-4 pb-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 pb-4 lg:pr-4 sm:flex-row sm:items-center sm:justify-between">
         <Skeleton className="h-8 w-52" />
       </div>
 
-      <div className="pr-4">
+      <div className="lg:pr-4">
         <Separator />
       </div>
 
-      <div className="pr-4 pt-4 pb-6">
+      <div className="pt-4 pb-6 lg:pr-4">
         <div className="grid items-start gap-6 lg:grid-cols-3">
           <div className="grid gap-6 lg:col-span-2">
             <Skeleton className="h-40 w-full" />

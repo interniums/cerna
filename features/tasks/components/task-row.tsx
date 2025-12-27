@@ -47,7 +47,7 @@ function TaskTag({ children, className, title }: { children: React.ReactNode; cl
       className={cn(
         // Avoid forcing horizontal overflow inside tight layouts (Dashboard has a right column).
         // Let tags shrink if needed; truncation is handled by the surrounding containers.
-        'inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium leading-none',
+        'inline-flex min-w-0 max-w-full shrink items-center rounded-md px-2.5 py-1 text-xs font-medium leading-none truncate',
         'bg-muted/40 text-muted-foreground',
         className
       )}
@@ -131,12 +131,15 @@ export function TaskRow({
   refreshOnToggle,
   onLocalStatusChange,
   showDragHandlePlaceholder,
+  hideDueDate = false,
 }: {
   task: Task
   dragHandleProps?: React.HTMLAttributes<HTMLButtonElement>
   refreshOnToggle?: boolean
   onLocalStatusChange?: (taskId: string, nextStatus: Task['status']) => void
   showDragHandlePlaceholder?: boolean
+  /** Hide due date badge (e.g. in Today section where it's redundant) */
+  hideDueDate?: boolean
 }) {
   const due = useMemo(() => getDueMeta(task.due_at), [task.due_at])
   const primary = task.title?.trim() ? task.title : 'Untitled task'
@@ -167,7 +170,8 @@ export function TaskRow({
       className={cn(
         // List row styling: low noise, separators come from the parent "divide-y".
         // Guard against horizontal overflow pushing adjacent dashboard columns (e.g. Calendar) off-screen.
-        'flex min-h-[56px] min-w-0 items-center gap-2 overflow-x-hidden bg-transparent px-2 py-2 transition-colors',
+        // Fixed height prevents subtle layout shifts during hydration / font settling / DnD init.
+        'flex min-h-[60px] min-w-0 items-center gap-2 overflow-x-hidden bg-transparent px-2 py-2 transition-colors',
         'hover:bg-muted/30 focus-within:bg-muted/20',
         task.status === 'done' ? 'bg-emerald-500/5 hover:bg-emerald-500/10' : ''
       )}
@@ -190,7 +194,12 @@ export function TaskRow({
 
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-baseline gap-2">
-          <p className={cn('min-w-0 truncate text-sm font-medium', task.status === 'done' ? 'line-through text-muted-foreground' : '')}>
+          <p
+            className={cn(
+              'min-w-0 truncate text-sm font-medium leading-5',
+              task.status === 'done' ? 'line-through text-muted-foreground' : ''
+            )}
+          >
             {primary}
           </p>
         </div>
@@ -201,7 +210,7 @@ export function TaskRow({
               <TooltipTrigger asChild>
                 <button
                   type="button"
-                  className="mt-0.5 block w-full truncate text-left text-xs text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 rounded-sm"
+                  className="mt-0.5 block w-full truncate text-left text-xs leading-4 text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 rounded-sm"
                   aria-label="Task description (truncated). Focus to preview."
                 >
                   {description}
@@ -217,7 +226,7 @@ export function TaskRow({
               </TooltipContent>
             </Tooltip>
           ) : (
-            <p className="mt-0.5 truncate text-xs text-slate-400" title={description}>
+            <p className="mt-0.5 truncate text-xs leading-4 text-slate-400" title={description}>
               {description}
             </p>
           )
@@ -230,8 +239,10 @@ export function TaskRow({
           {task.priority === 'high' ? 'High' : task.priority === 'medium' ? 'Medium' : 'Low'}
         </TaskTag>
 
-        {due ? (
-          <TaskTag className={cn(dueIsOverdue ? 'bg-destructive/15 text-destructive' : 'bg-muted/40 text-muted-foreground')}>
+        {due && !hideDueDate ? (
+          <TaskTag
+            className={cn(dueIsOverdue ? 'bg-destructive/15 text-destructive' : 'bg-muted/40 text-muted-foreground')}
+          >
             Due {due.label}
           </TaskTag>
         ) : null}
@@ -243,7 +254,7 @@ export function TaskRow({
             rel="noopener noreferrer"
             title={appLabel}
             className={cn(
-              'group inline-flex min-w-0 max-w-[220px] items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium leading-none',
+              'group inline-flex min-w-0 max-w-[220px] items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium leading-none',
               'bg-muted/40 text-muted-foreground hover:bg-muted/60 hover:text-foreground',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50'
             )}
@@ -253,7 +264,10 @@ export function TaskRow({
               <img src={appIconSrc} alt="" className="size-3.5 shrink-0 rounded-sm" referrerPolicy="no-referrer" />
             ) : null}
             <span className="min-w-0 truncate">{primaryResource ? appLabel : 'App'}</span>
-            <ExternalLink aria-hidden="true" className="size-3 text-muted-foreground/80 group-hover:text-foreground/90" />
+            <ExternalLink
+              aria-hidden="true"
+              className="size-3 text-muted-foreground/80 group-hover:text-foreground/90"
+            />
           </Link>
         ) : null}
 
@@ -263,7 +277,7 @@ export function TaskRow({
             target="_blank"
             rel="noopener noreferrer"
             className={cn(
-              'inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium leading-none',
+              'inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium leading-none',
               'bg-muted/40 text-muted-foreground hover:bg-muted/60 hover:text-foreground',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50'
             )}
@@ -278,5 +292,3 @@ export function TaskRow({
     </div>
   )
 }
-
-

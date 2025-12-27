@@ -128,6 +128,7 @@ export function ResourceCreateForm({
   const inFlight = useRef<AbortController | null>(null)
   const urlInputRef = useRef<HTMLInputElement | null>(null)
 
+  const [titleEdited, setTitleEdited] = useState(false)
   const titleEditedRef = useRef(false)
   const didCompleteRef = useRef(false)
 
@@ -139,7 +140,7 @@ export function ResourceCreateForm({
   const urlHelpId = `${urlInputId}-help`
 
   const showTitleAutofillSpinner =
-    previewState === 'loading' && urlTouched && !urlError && !titleEditedRef.current && !titleInput.trim()
+    previewState === 'loading' && urlTouched && !urlError && !titleEdited && !titleInput.trim()
 
   const submitUrlInvalidMessage = 'Please enter a valid URL (include https://).'
 
@@ -153,6 +154,7 @@ export function ResourceCreateForm({
 
   function handleTitleChange(next: string) {
     titleEditedRef.current = true
+    setTitleEdited(true)
     setTitleInput(next)
   }
 
@@ -278,15 +280,14 @@ export function ResourceCreateForm({
         />
         <p
           id={urlHelpId}
-          className={cn('min-h-4 text-xs', (urlTouched && urlError) || submitUrlInvalid ? 'text-destructive' : 'text-muted-foreground')}
+          className={cn(
+            'min-h-4 text-xs',
+            (urlTouched && urlError) || submitUrlInvalid ? 'text-destructive' : 'text-muted-foreground'
+          )}
           role={urlTouched && urlError ? 'status' : submitUrlInvalid ? 'status' : undefined}
           aria-live={urlTouched && urlError ? 'polite' : submitUrlInvalid ? 'polite' : undefined}
         >
-          {urlTouched && urlError
-            ? urlError
-            : submitUrlInvalid
-              ? submitUrlInvalidMessage
-              : 'Paste a link.'}
+          {urlTouched && urlError ? urlError : submitUrlInvalid ? submitUrlInvalidMessage : 'Paste a link.'}
         </p>
       </div>
 
@@ -321,7 +322,7 @@ export function ResourceCreateForm({
           <Label htmlFor={notesInputId} className="text-muted-foreground">
             Notes (optional)
           </Label>
-          <Textarea id={notesInputId} name="notes" placeholder={notesPlaceholder} rows={4} className="resize-y" />
+          <Textarea id={notesInputId} name="notes" placeholder={notesPlaceholder} rows={4} />
         </div>
 
         {errorMessage ? (
