@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
@@ -24,15 +24,14 @@ import { TaskRow } from '@/features/tasks/components/task-row'
 import { TaskCreateDialog } from '@/features/tasks/components/task-create-dialog'
 import { reorderTasksAction } from '@/features/tasks/actions'
 import { useHydrated } from '@/lib/hooks/use-hydrated'
+import { TASKS_ACTIVE_TAB_COOKIE_MAX_AGE_SECONDS, getTasksActiveTabKey, isTaskTab, type TaskTab } from '@/features/tasks/task-tab-persistence'
 
-type TaskTab = 'today' | 'other' | 'done'
-
-function isTaskTab(v: unknown): v is TaskTab {
-  return v === 'today' || v === 'other' || v === 'done'
-}
-
-function getTaskTabStorageKey(workflowId: string) {
-  return `cerna.tasks.activeTab.${workflowId}`
+function setTasksActiveTabCookie(workflowId: string, tab: TaskTab) {
+  try {
+    document.cookie = `${getTasksActiveTabKey(workflowId)}=${tab}; Path=/; Max-Age=${TASKS_ACTIVE_TAB_COOKIE_MAX_AGE_SECONDS}; SameSite=Lax`
+  } catch {
+    // Ignore cookie errors.
+  }
 }
 
 function ymdFromIsoUtc(iso: string | null) {
@@ -121,11 +120,13 @@ export function TaskList({
   openTasks,
   doneTasks,
   todayUtcYmd,
+  initialActiveTab,
 }: {
   workflowId: string
   openTasks: Task[]
   doneTasks: Task[]
   todayUtcYmd: string
+  initialActiveTab?: TaskTab
 }) {
   const router = useRouter()
   const hydrated = useHydrated()
@@ -142,9 +143,9 @@ export function TaskList({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
-  const [activeTab, setActiveTab] = useState<TaskTab>('today')
+  const [activeTab, setActiveTab] = useState<TaskTab>(() => initialActiveTab ?? 'today')
+  const [tabReady, setTabReady] = useState(() => Boolean(initialActiveTab))
   const [saving, setSaving] = useState<{ today: boolean; other: boolean; done: boolean }>({ today: false, other: false, done: false })
-  const restoredTabRef = useRef(false)
 
   const latestIdsRef = useRef<{ today: string[]; other: string[]; done: string[] }>({ today: [], other: [], done: [] })
   const inFlightRef = useRef<{ today: boolean; other: boolean; done: boolean }>({ today: false, other: false, done: false })
@@ -259,29 +260,33 @@ export function TaskList({
     (tab: TaskTab) => {
       if (!hydrated) return
       try {
-        window.localStorage.setItem(getTaskTabStorageKey(workflowId), tab)
+        window.localStorage.setItem(getTasksActiveTabKey(workflowId), tab)
       } catch {
         // Ignore storage failures (private mode / quota / disabled).
       }
+      setTasksActiveTabCookie(workflowId, tab)
     },
     [hydrated, workflowId]
   )
 
-  useEffect(() => {
+  // If the server didn't provide an initial tab (cookie missing), restore from localStorage
+  // before showing any tab content to avoid the "Today flashes, then switches" effect.
+  useLayoutEffect(() => {
+    if (tabReady) return
     if (!hydrated) return
-    if (restoredTabRef.current) return
-    restoredTabRef.current = true
 
     try {
-      const saved = window.localStorage.getItem(getTaskTabStorageKey(workflowId))
-      if (!isTaskTab(saved)) return
-      if (saved === activeTab) return
-      // Restore without surprising re-bucketing; buckets are reconciled on explicit user tab switches.
-      setActiveTab(saved)
+      const saved = window.localStorage.getItem(getTasksActiveTabKey(workflowId))
+      if (isTaskTab(saved)) {
+        setActiveTab(saved)
+        setTasksActiveTabCookie(workflowId, saved) // migrate localStorage -> cookie
+      }
     } catch {
       // Ignore storage failures.
+    } finally {
+      setTabReady(true)
     }
-  }, [activeTab, hydrated, workflowId])
+  }, [hydrated, tabReady, workflowId])
 
   const handleTabChange = useCallback(
     (next: string) => {
@@ -361,6 +366,25 @@ export function TaskList({
         </div>
       </CardHeader>
       <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
+        {!tabReady ? (
+          // Keep layout stable; don't show the wrong tab during first paint.
+          <div className="grid min-h-0 min-w-0 w-full flex-1 content-start gap-2">
+            <div className="h-9 w-[280px] rounded-lg border border-border/60 bg-muted/20" aria-hidden="true" />
+            <p className="min-h-4 text-xs text-muted-foreground" role="status" aria-live="polite">
+              Loading…
+            </p>
+            <Separator className="mt-2" />
+            <div className={tabContentClassName}>
+              <div className="mx-auto w-full max-w-3xl min-w-0">
+                <div className="w-full min-w-0 overflow-hidden rounded-lg border border-border/60 bg-card/30 divide-y divide-border/60">
+                  <div className="h-12" />
+                  <div className="h-12" />
+                  <div className="h-12" />
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
         <Tabs
           value={activeTab}
           onValueChange={handleTabChange}
@@ -466,6 +490,7 @@ export function TaskList({
             </div>
           </TabsContent>
         </Tabs>
+        )}
       </CardContent>
     </Card>
   )

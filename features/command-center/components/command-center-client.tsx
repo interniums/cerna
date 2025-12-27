@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from 'react'
 
 import type { Task } from '@/lib/db/tasks'
 import { TaskList } from '@/features/tasks/components/task-list'
+import type { TaskTab } from '@/features/tasks/task-tab-persistence'
 import { FocusModeCard } from '@/features/focus/components/focus-mode-card'
 import { CalendarWidget } from '@/features/calendar/components/calendar-widget'
 import { Button } from '@/components/ui/button'
@@ -13,6 +14,7 @@ type CommandCenterClientProps = {
   openTasks: Task[]
   doneTasks: Task[]
   todayUtcYmd: string
+  initialTaskTab?: TaskTab
   initialFocusTaskId?: string
   tasksLoadError?: string | null
 }
@@ -22,6 +24,7 @@ export function CommandCenterClient({
   openTasks,
   doneTasks,
   todayUtcYmd,
+  initialTaskTab,
   initialFocusTaskId,
   tasksLoadError,
 }: CommandCenterClientProps) {
@@ -61,7 +64,13 @@ export function CommandCenterClient({
                 <p className="mt-1 text-sm text-muted-foreground">{tasksLoadError}</p>
               </div>
             ) : (
-              <TaskList workflowId={workflowId} openTasks={openTasks} doneTasks={doneTasks} todayUtcYmd={todayUtcYmd} />
+              <TaskList
+                workflowId={workflowId}
+                openTasks={openTasks}
+                doneTasks={doneTasks}
+                todayUtcYmd={todayUtcYmd}
+                initialActiveTab={initialTaskTab}
+              />
             )}
 
             <FocusModeCard

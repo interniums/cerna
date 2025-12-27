@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Loader2, MoreHorizontal } from 'lucide-react'
+import { MoreHorizontal } from 'lucide-react'
 
 import type { Task } from '@/lib/db/tasks'
 import { deleteTaskAction, restoreTaskAction, type TaskActionState } from '@/features/tasks/actions'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { TaskEditForm } from '@/features/tasks/components/task-edit-form'
+import { Spinner } from '@/components/ui/spinner'
 
 const initialState: TaskActionState = { ok: false, message: '' }
 
@@ -35,7 +36,7 @@ function TaskUndoToastContent({ state, onUndo }: { state: ToastState; onUndo: ()
       >
         {state === 'undoing' ? (
           <>
-            <Loader2 className="size-3 animate-spin" aria-hidden="true" />
+            <Spinner className="size-3" aria-hidden="true" />
             Undoing…
           </>
         ) : (

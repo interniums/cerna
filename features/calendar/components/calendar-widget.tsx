@@ -16,7 +16,9 @@ import { ExternalLink, Link2, MoreHorizontal, RefreshCcw, Settings2, Unlink2 } f
 import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Spinner } from '@/components/ui/spinner'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -227,6 +229,7 @@ function CalendarWidgetSkeleton() {
         </div>
         {/* Events container - matches: flex flex-col gap-1 */}
         <div className="flex flex-col gap-1">
+          <CalendarEventSkeleton />
           <CalendarEventSkeleton />
           <CalendarEventSkeleton />
         </div>
@@ -464,16 +467,6 @@ export function CalendarWidget({ workflowId }: { workflowId: string }) {
     return `${enabledCount} of ${accounts.length} enabled.`
   }, [accounts])
 
-  const shouldStabilizeHeight = useMemo(() => {
-    // Prevent layout shifts when loading skeleton resolves into a short list (0–2 events).
-    // We keep the minimum height only for the "connected + enabled" flow; other states can size naturally.
-    if (loading) return true
-    if (error) return false
-    if (!connected) return false
-    if (!anyEnabled) return false
-    return events.length < 3
-  }, [anyEnabled, connected, error, events.length, loading])
-
   const handleSettingsClick = useCallback(() => {
     setOpen(true)
   }, [])
@@ -495,9 +488,57 @@ export function CalendarWidget({ workflowId }: { workflowId: string }) {
     void refetch(connected ? 'refresh' : 'initial')
   }, [connected, refetch])
 
+  const maybeAutoRefresh = useCallback(() => {
+    if (loading) return
+    if (refreshing) return
+    if (error) return
+    if (!connected) return
+    if (!anyEnabled) return
+    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return
+    void refetch('refresh')
+  }, [anyEnabled, connected, error, loading, refetch, refreshing])
+
+  useEffect(() => {
+    // Keep sidebar calendar reasonably fresh without expensive realtime plumbing.
+    // - Refresh periodically while visible
+    // - Refresh when returning to the tab/window
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') return
+      maybeAutoRefresh()
+    }
+    const handleWindowFocus = () => {
+      maybeAutoRefresh()
+    }
+
+    window.addEventListener('focus', handleWindowFocus)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    // Jittered refresh to avoid synchronized spikes across users:
+    // schedule the next refresh between 4–6 minutes.
+    let timeoutId: number | null = null
+    let cancelled = false
+    const scheduleNext = () => {
+      if (cancelled) return
+      const minMs = 4 * 60 * 1000
+      const maxMs = 6 * 60 * 1000
+      const delay = minMs + Math.floor(Math.random() * (maxMs - minMs + 1))
+      timeoutId = window.setTimeout(() => {
+        maybeAutoRefresh()
+        scheduleNext()
+      }, delay)
+    }
+    scheduleNext()
+
+    return () => {
+      window.removeEventListener('focus', handleWindowFocus)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      cancelled = true
+      if (timeoutId != null) window.clearTimeout(timeoutId)
+    }
+  }, [maybeAutoRefresh])
+
   return (
-    <Card className="min-w-0 max-w-full overflow-hidden pt-2">
-      <CardHeader className="pt-2 px-4 sm:px-6">
+    <Card className="min-w-0 max-w-full overflow-hidden flex h-[375px] flex-col gap-0 pt-2 pb-0">
+      <CardHeader className="gap-1 pb-0 pt-2 px-4 sm:px-6">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
             <CardTitle className="text-sm truncate">Calendar</CardTitle>
@@ -509,7 +550,7 @@ export function CalendarWidget({ workflowId }: { workflowId: string }) {
               )}
               aria-live="polite"
             >
-              <RefreshCcw aria-hidden="true" className={cn('size-3.5', refreshing ? 'animate-spin' : '')} />
+              {refreshing ? <Spinner aria-hidden="true" className="size-3.5" /> : null}
             </span>
           </div>
 
@@ -529,87 +570,92 @@ export function CalendarWidget({ workflowId }: { workflowId: string }) {
         </div>
       </CardHeader>
 
-      {/* Reserve space when skeleton resolves into a short list to avoid layout jumps. */}
+      <div className="mt-2 px-4 sm:px-6">
+        <Separator />
+      </div>
+
       <CardContent
         className={cn(
-          'grid gap-3 min-w-0 px-4 sm:px-6',
-          // A touch taller than the skeleton/content to avoid sub-pixel font metric differences causing a jump.
-          shouldStabilizeHeight ? 'min-h-[216px]' : ''
+          // Match TaskList: everything under the separator is scrollable; no bottom padding so content isn't clipped.
+          'grid gap-3 min-w-0 px-4 sm:px-6 pt-2 flex-1 min-h-0 overflow-y-scroll overflow-x-hidden pr-4 scrollbar-gutter-stable pb-4'
         )}
+        aria-busy={loading ? true : undefined}
       >
         {refreshError ? (
           <p className="text-xs text-muted-foreground" role="status" aria-live="polite">
             {refreshError}
           </p>
         ) : null}
-        {loading ? (
-          <CalendarWidgetSkeleton />
-        ) : error ? (
-          <div className="grid gap-2">
-            <p className="text-sm text-destructive" role="status" aria-live="polite">
-              {error}
-            </p>
-            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-              <Button type="button" variant="secondary" onClick={handleRetryClick}>
-                <RefreshCcw aria-hidden="true" className="mr-2 size-4" />
-                Retry
-              </Button>
+        <div className="grid gap-3 min-w-0">
+          {loading ? (
+            <CalendarWidgetSkeleton />
+          ) : error ? (
+            <div className="grid gap-2">
+              <p className="text-sm text-destructive" role="status" aria-live="polite">
+                {error}
+              </p>
+              <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                <Button type="button" variant="secondary" onClick={handleRetryClick}>
+                  <RefreshCcw aria-hidden="true" className="mr-2 size-4" />
+                  Retry
+                </Button>
+              </div>
             </div>
-          </div>
-        ) : !connected ? (
-          <div className="grid gap-3">
-            <p className="text-sm text-muted-foreground">Not connected.</p>
-            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-              <Button asChild type="button" variant="secondary">
-                <Link href={`/api/google-calendar/connect?returnTo=${encodeURIComponent(`/app/w/${workflowId}`)}`}>
-                  <span className="inline-flex items-center">
-                    <GoogleMark className="mr-2" />
-                    {connectGoogleLabel}
-                  </span>
-                </Link>
-              </Button>
-              <Button asChild type="button" variant="secondary">
-                <Link href={`/api/microsoft-calendar/connect?returnTo=${encodeURIComponent(`/app/w/${workflowId}`)}`}>
-                  <span className="inline-flex items-center">
-                    <MicrosoftMark className="mr-2" />
-                    Connect Microsoft
-                  </span>
-                </Link>
-              </Button>
+          ) : !connected ? (
+            <div className="grid gap-3">
+              <p className="text-sm text-muted-foreground">Not connected.</p>
+              <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                <Button asChild type="button" variant="secondary">
+                  <Link href={`/api/google-calendar/connect?returnTo=${encodeURIComponent(`/app/w/${workflowId}`)}`}>
+                    <span className="inline-flex items-center">
+                      <GoogleMark className="mr-2" />
+                      {connectGoogleLabel}
+                    </span>
+                  </Link>
+                </Button>
+                <Button asChild type="button" variant="secondary">
+                  <Link href={`/api/microsoft-calendar/connect?returnTo=${encodeURIComponent(`/app/w/${workflowId}`)}`}>
+                    <span className="inline-flex items-center">
+                      <MicrosoftMark className="mr-2" />
+                      Connect Microsoft
+                    </span>
+                  </Link>
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">Read-only. You can disconnect anytime.</p>
             </div>
-            <p className="text-xs text-muted-foreground">Read-only. You can disconnect anytime.</p>
-          </div>
-        ) : !anyEnabled ? (
-          <div className="grid gap-2">
-            <p className="text-sm text-muted-foreground">No accounts enabled for this workflow.</p>
-            <p className="text-xs text-muted-foreground">{settingsSummary}</p>
-            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-              <Button type="button" variant="secondary" onClick={handleSettingsClick}>
-                Choose accounts
-              </Button>
+          ) : !anyEnabled ? (
+            <div className="grid gap-2">
+              <p className="text-sm text-muted-foreground">No accounts enabled for this workflow.</p>
+              <p className="text-xs text-muted-foreground">{settingsSummary}</p>
+              <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                <Button type="button" variant="secondary" onClick={handleSettingsClick}>
+                  Choose accounts
+                </Button>
+              </div>
             </div>
-          </div>
-        ) : events.length === 0 ? (
-          <div className="grid gap-2">
-            {enabledErrors.length > 0 ? (
-              <>
-                <p className="text-sm text-destructive" role="status" aria-live="polite">
-                  Couldn&apos;t load events for {enabledErrors.length} account{enabledErrors.length === 1 ? '' : 's'}.
-                </p>
-                <p className="text-xs text-muted-foreground">{enabledErrors[0].lastError}</p>
-                <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-                  <Button type="button" variant="secondary" onClick={handleSettingsClick}>
-                    Fix connection
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">No upcoming meetings.</p>
-            )}
-          </div>
-        ) : (
-          <EventsList events={events} />
-        )}
+          ) : events.length === 0 ? (
+            <div className="grid gap-2">
+              {enabledErrors.length > 0 ? (
+                <>
+                  <p className="text-sm text-destructive" role="status" aria-live="polite">
+                    Couldn&apos;t load events for {enabledErrors.length} account{enabledErrors.length === 1 ? '' : 's'}.
+                  </p>
+                  <p className="text-xs text-muted-foreground">{enabledErrors[0].lastError}</p>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                    <Button type="button" variant="secondary" onClick={handleSettingsClick}>
+                      Fix connection
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">No upcoming meetings.</p>
+              )}
+            </div>
+          ) : (
+            <EventsList events={events} />
+          )}
+        </div>
 
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent>

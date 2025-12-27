@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Link2, Loader2 } from 'lucide-react'
+import { Link2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import type { ResourceActionState } from '@/features/resources/actions'
@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { FormSubmitButton } from '@/components/forms/form-submit-button'
+import { Spinner } from '@/components/ui/spinner'
 import { useDebouncedValue } from '@/lib/hooks/use-debounced-value'
 import { getFaviconProxyUrl, getFaviconProxyUrlFromIconUrl, validateHttpUrlInput } from '@/lib/url'
 import { cn } from '@/lib/utils'
@@ -312,7 +313,7 @@ export function ResourceCreateForm({
             />
             {showTitleAutofillSpinner ? (
               <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-                <Loader2 aria-hidden="true" className="size-4 animate-spin text-muted-foreground" />
+                <Spinner aria-hidden="true" className="size-4 text-muted-foreground" />
               </div>
             ) : null}
           </div>

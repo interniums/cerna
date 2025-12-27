@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { CheckCircle2, Circle, ExternalLink, GripVertical, Link2, Loader2 } from 'lucide-react'
+import { CheckCircle2, Circle, ExternalLink, GripVertical, Link2 } from 'lucide-react'
 
 import type { Task } from '@/lib/db/tasks'
 import { TaskActionsDialog } from '@/features/tasks/components/task-actions-dialog'
@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { getFaviconProxyUrl, getFaviconProxyUrlFromIconUrl } from '@/lib/url'
+import { Spinner } from '@/components/ui/spinner'
 
 function priorityBadgeClass(priority: Task['priority']) {
   switch (priority) {
@@ -114,7 +115,7 @@ function TaskStatusButton({
       onClick={handleClick}
     >
       {pending ? (
-        <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+        <Spinner aria-hidden="true" className="size-4" />
       ) : task.status === 'done' ? (
         <CheckCircle2 aria-hidden="true" className="text-emerald-600 dark:text-emerald-400" />
       ) : (

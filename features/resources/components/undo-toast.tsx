@@ -3,9 +3,9 @@
 import { useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
-import { Loader2 } from 'lucide-react'
 
 import { restoreResourceAction } from '@/features/resources/actions'
+import { Spinner } from '@/components/ui/spinner'
 
 type ToastState = 'idle' | 'undoing' | 'restored'
 
@@ -29,7 +29,7 @@ function UndoToastContent({ state, onUndo }: { state: ToastState; onUndo: () => 
       >
         {state === 'undoing' ? (
           <>
-            <Loader2 className="size-3 animate-spin" aria-hidden="true" />
+            <Spinner className="size-3" aria-hidden="true" />
             Undoing…
           </>
         ) : (

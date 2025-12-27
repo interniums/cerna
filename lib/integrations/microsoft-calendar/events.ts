@@ -37,7 +37,15 @@ export async function listUpcomingMicrosoftEvents(input: {
 
   const json = (await res.json().catch(() => null)) as unknown
   if (!res.ok || !json || typeof json !== 'object') {
-    throw new Error('Microsoft Calendar events request failed.')
+    const retryAfterRaw = res.headers.get('Retry-After')
+    const retryAfterSec = retryAfterRaw ? Number(retryAfterRaw) : null
+    const message =
+      json && typeof json === 'object'
+        ? (json as { error?: { message?: unknown } }).error?.message
+        : null
+    const msg = typeof message === 'string' && message.trim() ? message : 'Microsoft Calendar request failed.'
+    const retryNote = Number.isFinite(retryAfterSec) && (retryAfterSec as number) > 0 ? ` retry-after=${retryAfterSec}s` : ''
+    throw new Error(`[microsoft-calendar] ${res.status} ${msg}${retryNote}`)
   }
 
   const value = (json as { value?: unknown }).value

@@ -1,9 +1,9 @@
 'use client'
 
 import { useFormStatus } from 'react-dom'
-import { Loader2 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 
 type FormSubmitButtonProps = React.ComponentProps<typeof Button> & {
   idleText: string
@@ -26,7 +26,7 @@ export function FormSubmitButton({
     <Button {...props} type="submit" disabled={disabled || pending} aria-disabled={disabled || pending}>
       {pending ? (
         <>
-          <Loader2 className={hideLabel ? 'mr-0 size-4 animate-spin' : 'mr-2 size-4 animate-spin'} aria-hidden="true" />
+          <Spinner className={hideLabel ? 'mr-0 size-4' : 'mr-2 size-4'} aria-hidden="true" />
           {hideLabel ? <span aria-hidden="true" className="opacity-0">{pendingText}</span> : pendingText}
           <span className="sr-only">{pendingText}</span>
         </>

@@ -3,7 +3,9 @@ import { requireServerUser } from '@/lib/supabase/auth'
 import { listTasks } from '@/lib/db/tasks'
 import { CommandCenterClient } from '@/features/command-center/components/command-center-client'
 import { PageViewTracker } from '@/features/instrumentation/components/page-view-tracker'
+import { getTasksActiveTabKey, isTaskTab } from '@/features/tasks/task-tab-persistence'
 import { z } from 'zod'
+import { cookies } from 'next/headers'
 
 type WorkflowHomePageProps = {
   params: Promise<{ workflowId: string }>
@@ -18,6 +20,11 @@ export default async function WorkflowHomePage({ params, searchParams }: Workflo
   const user = await requireServerUser()
   const { workflowId } = await params
   const todayUtcYmd = new Date().toISOString().slice(0, 10)
+
+  // Next.js 16 `cookies()` is async in RSC/Turbopack.
+  const cookieStore = await cookies()
+  const initialTaskTabRaw = cookieStore.get(getTasksActiveTabKey(workflowId))?.value
+  const initialTaskTab = isTaskTab(initialTaskTabRaw) ? initialTaskTabRaw : undefined
 
   const sp = (await searchParams) ?? {}
   const focusTaskIdRaw = firstString(sp.focusTaskId)
@@ -57,6 +64,7 @@ export default async function WorkflowHomePage({ params, searchParams }: Workflo
           openTasks={openTasks}
           doneTasks={doneTasks}
           todayUtcYmd={todayUtcYmd}
+          initialTaskTab={initialTaskTab}
           initialFocusTaskId={focusTaskId}
           tasksLoadError={tasksLoadError}
         />

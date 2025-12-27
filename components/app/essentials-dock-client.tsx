@@ -420,7 +420,8 @@ export function EssentialsDockClient({
 
   return (
     <div className="w-full">
-      <div className="flex w-full items-center gap-2">
+      <div className="mx-auto w-full max-w-[920px]">
+        <div className="flex w-full items-center gap-2">
         <div className="min-w-0 flex-1">
           <div className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm backdrop-blur-md supports-backdrop-filter:bg-card/80 dark:border-white/15 dark:shadow-md">
             <div className="flex min-h-[60px] items-center gap-0.5 px-1 py-1">
@@ -523,6 +524,7 @@ export function EssentialsDockClient({
             }
           />
         </div>
+      </div>
       </div>
     </div>
   )

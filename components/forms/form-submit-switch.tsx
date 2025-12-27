@@ -1,9 +1,9 @@
 'use client'
 
 import { useFormStatus } from 'react-dom'
-import { Loader2 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import { Spinner } from '@/components/ui/spinner'
 
 type FormSubmitSwitchProps = {
   checked: boolean
@@ -47,7 +47,7 @@ export function FormSubmitSwitch({
           checked ? 'translate-x-4' : 'translate-x-0'
         )}
       >
-        {pending ? <Loader2 className="size-3 animate-spin text-muted-foreground" /> : null}
+        {pending ? <Spinner className="size-3 text-muted-foreground" aria-hidden="true" /> : null}
       </span>
       <span className="sr-only">{pending ? pendingLabel : 'Toggle'}</span>
     </button>

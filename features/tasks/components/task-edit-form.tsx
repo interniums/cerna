@@ -3,7 +3,7 @@
 import { useActionState, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Loader2, Trash2, X } from 'lucide-react'
+import { Trash2, X } from 'lucide-react'
 
 import type { Task } from '@/lib/db/tasks'
 import { updateTaskAction, type TaskActionState } from '@/features/tasks/actions'
@@ -16,6 +16,7 @@ import { FormSubmitButton } from '@/components/forms/form-submit-button'
 import { DatePicker } from '@/components/forms/date-picker'
 import { PrimaryAppField, type PrimaryAppValue } from '@/features/tasks/components/primary-app-field'
 import { validateHttpUrlInput } from '@/lib/url'
+import { Spinner } from '@/components/ui/spinner'
 
 const initialState: TaskActionState = { ok: false, message: '' }
 
@@ -423,7 +424,7 @@ export function TaskEditForm({
             >
               {isDeleting ? (
                 <>
-                  <Loader2 aria-hidden="true" className="mr-2 size-4 animate-spin" />
+                  <Spinner aria-hidden="true" className="mr-2 size-4" />
                   Deleting…
                 </>
               ) : (

@@ -38,34 +38,19 @@ type SidebarProviderProps = {
 
 export function SidebarProvider({ children, initialCollapsed = false }: SidebarProviderProps) {
   const [isCollapsed, setIsCollapsed] = useState(initialCollapsed)
-  const [isReady, setIsReady] = useState(false)
-
-  // Read from localStorage synchronously before paint
-  useLayoutEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY)
-      if (stored === 'true' || stored === 'false') {
-        const next = stored === 'true'
-        setIsCollapsed(next)
-        // Keep cookie in sync with localStorage (source of truth on the client).
-        setSidebarCookie(next)
-      }
-    } catch {
-      // Ignore localStorage errors
-    }
-    setIsReady(true)
-  }, [])
+  // We intentionally avoid "rehydrating" from localStorage here to prevent layout shift/hydration mismatch.
+  // The server-provided cookie (`initialCollapsed`) is the source of truth for initial render.
+  const isReady = true
 
   // Persist to localStorage on change (only after ready)
   useLayoutEffect(() => {
-    if (!isReady) return
     try {
       localStorage.setItem(STORAGE_KEY, String(isCollapsed))
     } catch {
       // Ignore localStorage errors
     }
     setSidebarCookie(isCollapsed)
-  }, [isCollapsed, isReady])
+  }, [isCollapsed])
 
   const toggle = useCallback(() => setIsCollapsed((prev) => !prev), [])
   const expand = useCallback(() => setIsCollapsed(false), [])

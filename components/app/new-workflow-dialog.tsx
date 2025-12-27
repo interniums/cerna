@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useId, useMemo, useState } from 'react'
-import { Loader2, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 
@@ -18,6 +18,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Spinner } from '@/components/ui/spinner'
 
 const initialState: WorkflowActionState = { ok: false, message: '' }
 
@@ -144,7 +145,7 @@ export function NewWorkflowDialog({ triggerLabel = 'New workflow' }: NewWorkflow
 
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
             <Button type="submit" disabled={isCreating} aria-disabled={isCreating}>
-              {isCreating ? <Loader2 aria-hidden="true" className="mr-2 size-4 animate-spin" /> : null}
+              {isCreating ? <Spinner aria-hidden="true" className="mr-2 size-4" /> : null}
               {isCreating ? 'Creating…' : 'Create'}
             </Button>
             <DialogClose asChild>

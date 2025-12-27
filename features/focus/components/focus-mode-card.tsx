@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { Link2, Loader2, Pause, Play, RotateCcw, Square } from 'lucide-react'
+import { Link2, Pause, Play, RotateCcw, Square } from 'lucide-react'
 
 import type { Task } from '@/lib/db/tasks'
 import { endFocusSessionAction, startFocusSessionAction, type FocusActionState } from '@/features/focus/actions'
@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
+import { Spinner } from '@/components/ui/spinner'
 
 const initialState: FocusActionState = { ok: false, message: '' }
 
@@ -286,7 +287,7 @@ export function FocusModeCard({ workflowId, tasks, initialTaskId, onActiveChange
                 <input type="hidden" name="sessionId" value={sessionId ?? ''} />
                 <input type="hidden" name="status" value="completed" />
                 <Button type="submit" variant="secondary" className="w-full sm:w-auto" disabled={isEnding}>
-                  {isEnding ? <Loader2 aria-hidden="true" className="mr-2 size-4 animate-spin" /> : <Square aria-hidden="true" className="mr-2 size-4" />}
+                  {isEnding ? <Spinner aria-hidden="true" className="mr-2 size-4" /> : <Square aria-hidden="true" className="mr-2 size-4" />}
                   {isEnding ? 'Saving…' : 'End focus'}
                 </Button>
               </form>
@@ -299,7 +300,7 @@ export function FocusModeCard({ workflowId, tasks, initialTaskId, onActiveChange
               <input type="hidden" name="workflowId" value={workflowId} />
               <input type="hidden" name="taskId" value={selectedTaskId || ''} />
               <Button type="submit" className="w-full sm:w-auto" disabled={!canStart || isStarting}>
-                {isStarting ? <Loader2 aria-hidden="true" className="mr-2 size-4 animate-spin" /> : null}
+                {isStarting ? <Spinner aria-hidden="true" className="mr-2 size-4" /> : null}
                 {isStarting ? 'Starting…' : 'Start focus'}
               </Button>
             </form>
