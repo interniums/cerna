@@ -15,11 +15,10 @@ export function ThemeToggle() {
   }, [])
 
   function handleToggleTheme() {
+    if (!mounted) return
     const current = resolvedTheme ?? 'light'
     setTheme(current === 'dark' ? 'light' : 'dark')
   }
-
-  const isDark = mounted ? resolvedTheme === 'dark' : false
 
   return (
     <Button
@@ -28,9 +27,11 @@ export function ThemeToggle() {
       size="icon-sm"
       onClick={handleToggleTheme}
       aria-label="Toggle theme"
-      disabled={!mounted}
+      aria-disabled={!mounted}
     >
-      {isDark ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}
+      {/* CSS-driven icon so the correct one shows immediately based on the `dark` class. */}
+      <Sun aria-hidden="true" className="hidden dark:block" />
+      <Moon aria-hidden="true" className="block dark:hidden" />
     </Button>
   )
 }

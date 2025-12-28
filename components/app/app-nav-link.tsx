@@ -17,17 +17,25 @@ type AppNavLinkProps = {
 
 export function AppNavLink({ href, children, icon: Icon, className }: AppNavLinkProps) {
   const pathname = usePathname()
-  const { isCollapsed } = useSidebar()
+  const { isCollapsed, collapse } = useSidebar()
   const isActive = pathname === href
 
   const content = (
     <Link
       href={href}
+      onClick={(e) => {
+        // Auto-close expanded sidebar only for a normal left-click navigation.
+        if (isCollapsed) return
+        if (e.defaultPrevented) return
+        if (e.button !== 0) return
+        if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return
+        collapse()
+      }}
       className={cn(
-        'flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors',
-        'text-muted-foreground hover:bg-accent hover:text-foreground',
+        'flex items-center gap-2.5 rounded-md border border-transparent px-2.5 py-2 text-sm transition-colors',
+        'text-muted-foreground hover:bg-accent/60 hover:text-foreground',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
-        isActive && 'bg-accent text-foreground',
+        isActive && 'border-primary/25 bg-primary/10 text-foreground shadow-sm',
         isCollapsed && 'justify-center px-2',
         className
       )}

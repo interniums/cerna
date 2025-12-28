@@ -36,7 +36,12 @@ export function CommandPalette({ defaultOpen = false }: CommandPaletteProps) {
   const inputRef = useRef<HTMLInputElement | null>(null)
   const debounceRef = useRef<number | null>(null)
   const { items, status, fetchForQuery, cancel } = useSpotlightData()
-  const [recentSearches, setRecentSearches] = useState<string[]>(readRecentSearches)
+  // Avoid reading localStorage during SSR/initial hydration render (causes hydration mismatch).
+  const [recentSearches, setRecentSearches] = useState<string[]>([])
+
+  useEffect(() => {
+    queueMicrotask(() => setRecentSearches(readRecentSearches()))
+  }, [])
 
   const trimmedQuery = query.trim()
   const hasQuery = Boolean(trimmedQuery)

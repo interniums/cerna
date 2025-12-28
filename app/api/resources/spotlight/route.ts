@@ -12,7 +12,9 @@ export const dynamic = 'force-dynamic'
 const BodySchema = z.object({
   workflowId: z.string().uuid().optional(),
   q: z.string().optional(),
-  limit: z.number().int().min(1).max(50).optional(),
+  limit: z.number().int().min(1).max(200).optional(),
+  // When `q` is empty, callers can choose whether they want a "recent" shortlist or the full list.
+  mode: z.enum(['recent', 'all']).optional(),
 })
 
 type SpotlightResource = {
@@ -37,11 +39,18 @@ export async function POST(request: Request) {
 
   const q = (parsed.data.q ?? '').trim()
   const limit = parsed.data.limit ?? 20
+  const mode = parsed.data.mode ?? 'recent'
   const workflowId = parsed.data.workflowId ?? (await getDefaultWorkflowId({ userId: user.id }))
 
   const resources = q
     ? await searchResources({ userId: user.id, workflowId, query: q, limit })
-    : await listResources({ userId: user.id, workflowId, scope: 'all', mode: 'recent', limit })
+    : await listResources({
+        userId: user.id,
+        workflowId,
+        scope: 'all',
+        mode: mode === 'all' ? 'default' : 'recent',
+        limit,
+      })
 
   const items: SpotlightResource[] = resources.map((r) => ({
     id: r.id,

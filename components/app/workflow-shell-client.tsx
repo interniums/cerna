@@ -1,8 +1,10 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import { useEffect } from 'react'
 
 import { SidebarProvider } from '@/components/app/sidebar-context'
+import { useSidebar } from '@/components/app/sidebar-context'
 import { ScrollYFade } from '@/components/ui/scroll-y-fade'
 
 type WorkflowShellClientProps = {
@@ -12,6 +14,37 @@ type WorkflowShellClientProps = {
   children: ReactNode
   workflowTheme?: string
   initialSidebarCollapsed?: boolean
+}
+
+function SidebarOverlay({ sidebar }: { sidebar: ReactNode }) {
+  const { isCollapsed, collapse } = useSidebar()
+
+  useEffect(() => {
+    if (isCollapsed) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      e.preventDefault()
+      collapse()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [collapse, isCollapsed])
+
+  return (
+    <>
+      {/* Backdrop only when expanded (intentional overlay mode). */}
+      {!isCollapsed ? (
+        <div
+          className="fixed inset-0 z-30 bg-black/35 backdrop-blur-[2px]"
+          aria-hidden="true"
+          onClick={() => collapse()}
+        />
+      ) : null}
+
+      {/* Sidebar - overlays main content */}
+      <div className="fixed bottom-0 left-3 top-3 z-40 pb-3 sm:left-4 md:left-6">{sidebar}</div>
+    </>
+  )
 }
 
 export function WorkflowShellClient({
@@ -25,25 +58,24 @@ export function WorkflowShellClient({
   return (
     <SidebarProvider initialCollapsed={initialSidebarCollapsed}>
       <div
-        className="flex h-full min-h-0 min-w-0 gap-4 overflow-x-hidden px-4 pt-3 pb-0 sm:gap-6 md:px-6"
+        className="relative h-full min-h-0 min-w-0 overflow-x-hidden px-4 pt-3 pb-0 md:px-6"
         data-workflow-theme={workflowTheme}
       >
-        {/* Sidebar - always visible, collapsible */}
-        <div className="shrink-0 pb-3">
-          {sidebar}
-        </div>
-
         {/* Main content */}
-        <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-          <div className="mb-2 min-w-0 pr-0 lg:pr-4">
-            <div className="min-w-0">{header}</div>
-          </div>
+        <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
+          <div className="mx-auto flex h-full min-h-0 w-full min-w-0 max-w-6xl flex-col">
+            <div className="pb-2 min-w-0">
+              <div className="min-w-0">{header}</div>
+            </div>
 
-          {afterHeader}
-          <ScrollYFade className="flex-1 min-h-0" viewportClassName="overflow-y-auto overflow-x-hidden">
-            {children}
-          </ScrollYFade>
+            {afterHeader}
+            <ScrollYFade className="flex-1 min-h-0" viewportClassName="overflow-y-auto overflow-x-hidden">
+              {children}
+            </ScrollYFade>
+          </div>
         </div>
+
+        <SidebarOverlay sidebar={sidebar} />
       </div>
     </SidebarProvider>
   )

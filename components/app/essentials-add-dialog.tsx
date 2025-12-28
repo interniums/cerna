@@ -112,7 +112,7 @@ function ChooseExistingResultsList({
             >
               <input
                 type="checkbox"
-                className="size-4 accent-foreground"
+                className={cn('size-4 cursor-pointer accent-foreground', pending ? 'cursor-not-allowed' : '')}
                 value={r.id}
                 checked={selected.has(r.id)}
                 disabled={pending}
@@ -142,7 +142,15 @@ function ChooseExistingResultsList({
   )
 }
 
-function AddNewTab({ workflowId, categories, onDone }: { workflowId: string; categories: Category[]; onDone: () => void }) {
+function AddNewTab({
+  workflowId,
+  categories,
+  onDone,
+}: {
+  workflowId: string
+  categories: Category[]
+  onDone: () => void
+}) {
   return (
     <ResourceCreateForm
       action={createEssentialResourceAction}
@@ -186,7 +194,8 @@ function ChooseExistingTab({ workflowId, onDone }: { workflowId: string; onDone:
   }, [])
 
   const trimmed = query.trim()
-  const limit = trimmed ? 30 : 12
+  // For Essentials "Choose existing", show the full library when search is empty.
+  const limit = trimmed ? 30 : 200
 
   useEffect(() => {
     inFlight.current?.abort()
@@ -199,7 +208,7 @@ function ChooseExistingTab({ workflowId, onDone }: { workflowId: string; onDone:
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       signal: controller.signal,
-      body: JSON.stringify({ workflowId, q: trimmed, limit }),
+      body: JSON.stringify({ workflowId, q: trimmed, limit, mode: trimmed ? undefined : 'all' }),
     })
       .then(async (res) => {
         if (!res.ok) throw new Error('Bad response')
@@ -326,7 +335,7 @@ function ChooseExistingTab({ workflowId, onDone }: { workflowId: string; onDone:
           />
           <DialogClose asChild>
             <Button type="button" variant="secondary" className="w-full sm:w-auto">
-              Close
+              Cancel
             </Button>
           </DialogClose>
         </div>

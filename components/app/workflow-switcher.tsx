@@ -27,22 +27,31 @@ type WorkflowSwitcherProps = {
 // Legacy non-collapsible version for backwards compatibility
 export function WorkflowSwitcher({ workflows, activeWorkflowId }: WorkflowSwitcherProps) {
   const router = useRouter()
+  const { collapse, isCollapsed } = useSidebar()
 
-  const active = useMemo(() => workflows.find((w) => w.id === activeWorkflowId) ?? workflows[0], [activeWorkflowId, workflows])
+  const active = useMemo(
+    () => workflows.find((w) => w.id === activeWorkflowId) ?? workflows[0],
+    [activeWorkflowId, workflows]
+  )
   const activeName = active?.name ?? 'Workflow'
 
   const handleGo = useCallback(
     (workflowId: string) => {
+      if (!isCollapsed) collapse()
       router.push(`/app/w/${workflowId}`)
     },
-    [router]
+    [collapse, isCollapsed, router]
   )
 
   return (
     <div className="grid gap-2">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button type="button" variant="secondary" className="w-full justify-between">
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full justify-between border border-border/60 bg-card/35 shadow-sm hover:bg-card/50"
+          >
             <span className="min-w-0 truncate">{activeName}</span>
             <ChevronDown aria-hidden="true" className="size-4 shrink-0 opacity-70" />
           </Button>
@@ -52,7 +61,9 @@ export function WorkflowSwitcher({ workflows, activeWorkflowId }: WorkflowSwitch
           {workflows.map((w) => (
             <DropdownMenuItem key={w.id} onSelect={() => handleGo(w.id)}>
               <span className="min-w-0 truncate">{w.name}</span>
-              {w.id === activeWorkflowId ? <span className="ml-auto text-xs text-muted-foreground">Current</span> : null}
+              {w.id === activeWorkflowId ? (
+                <span className="ml-auto text-xs text-muted-foreground">Current</span>
+              ) : null}
             </DropdownMenuItem>
           ))}
           <DropdownMenuSeparator />
@@ -68,24 +79,29 @@ export function WorkflowSwitcher({ workflows, activeWorkflowId }: WorkflowSwitch
 // Collapsible version that responds to sidebar state
 export function WorkflowSwitcherCollapsible({ workflows, activeWorkflowId }: WorkflowSwitcherProps) {
   const router = useRouter()
-  const { isCollapsed } = useSidebar()
+  const { isCollapsed, collapse } = useSidebar()
 
-  const active = useMemo(() => workflows.find((w) => w.id === activeWorkflowId) ?? workflows[0], [activeWorkflowId, workflows])
+  const active = useMemo(
+    () => workflows.find((w) => w.id === activeWorkflowId) ?? workflows[0],
+    [activeWorkflowId, workflows]
+  )
   const activeName = active?.name ?? 'Workflow'
 
   const handleGo = useCallback(
     (workflowId: string) => {
+      if (!isCollapsed) collapse()
       router.push(`/app/w/${workflowId}`)
     },
-    [router]
+    [collapse, isCollapsed, router]
   )
 
   const trigger = (
     <Button
       type="button"
-      variant="secondary"
+      variant="ghost"
       className={cn(
-        isCollapsed ? 'w-10 h-10 p-0' : 'w-full justify-between'
+        isCollapsed ? 'h-10 w-10 p-0' : 'w-full justify-between',
+        'border border-border/60 bg-card/35 shadow-sm hover:bg-card/50'
       )}
     >
       {isCollapsed ? (
@@ -110,7 +126,7 @@ export function WorkflowSwitcherCollapsible({ workflows, activeWorkflowId }: Wor
       ))}
       <DropdownMenuSeparator />
       <div className="px-2 py-2">
-        <NewWorkflowDialog triggerLabel="New workflow" />
+        <NewWorkflowDialog triggerLabel="New workflow" triggerClassName="w-full justify-start" />
       </div>
     </DropdownMenuContent>
   )

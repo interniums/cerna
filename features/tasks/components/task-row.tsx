@@ -17,12 +17,13 @@ import { Spinner } from '@/components/ui/spinner'
 function priorityBadgeClass(priority: Task['priority']) {
   switch (priority) {
     case 'high':
-      return 'bg-destructive/15 text-destructive'
+      // Keep priority legible without turning the column into a solid "stripe".
+      return 'bg-transparent text-destructive ring-1 ring-inset ring-destructive/30'
     case 'medium':
       // Medium should not feel like a warning.
-      return 'bg-slate-500/25 text-slate-200'
+      return 'bg-transparent text-foreground/70 ring-1 ring-inset ring-border/50'
     case 'low':
-      return 'bg-muted/50 text-muted-foreground'
+      return 'bg-transparent text-muted-foreground ring-1 ring-inset ring-border/40'
   }
 }
 
@@ -49,7 +50,8 @@ function TaskTag({ children, className, title }: { children: React.ReactNode; cl
         // Avoid forcing horizontal overflow inside tight layouts (Dashboard has a right column).
         // Let tags shrink if needed; truncation is handled by the surrounding containers.
         'inline-flex min-w-0 max-w-full shrink items-center rounded-md px-2.5 py-1 text-xs font-medium leading-none truncate',
-        'bg-muted/40 text-muted-foreground',
+        // Light mode: slightly stronger fill for legibility on “paper” background; keep dark mode unchanged.
+        'bg-muted/55 text-muted-foreground dark:bg-muted/40',
         className
       )}
     >
@@ -194,7 +196,7 @@ export function TaskRow({
       <TaskStatusButton task={task} refreshOnSuccess={refreshOnToggle} onLocalStatusChange={onLocalStatusChange} />
 
       <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 items-baseline gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           <p
             className={cn(
               'min-w-0 truncate text-sm font-medium leading-5',
@@ -211,7 +213,7 @@ export function TaskRow({
               <TooltipTrigger asChild>
                 <button
                   type="button"
-                  className="mt-0.5 block w-full truncate text-left text-xs leading-4 text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 rounded-sm"
+                  className="mt-0.5 block w-full truncate text-left text-xs leading-4 text-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 rounded-sm"
                   aria-label="Task description (truncated). Focus to preview."
                 >
                   {description}
@@ -227,7 +229,7 @@ export function TaskRow({
               </TooltipContent>
             </Tooltip>
           ) : (
-            <p className="mt-0.5 truncate text-xs leading-4 text-slate-400" title={description}>
+            <p className="mt-0.5 truncate text-xs leading-4 text-foreground/60" title={description}>
               {description}
             </p>
           )
@@ -255,7 +257,8 @@ export function TaskRow({
             rel="noopener noreferrer"
             title={appLabel}
             className={cn(
-              'group inline-flex min-w-0 max-w-[220px] items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium leading-none',
+              // Fixed height + centered contents keeps icon/text visually centered and consistent across rows.
+              'group inline-flex h-7 min-w-0 max-w-[220px] items-center gap-2 rounded-md px-2.5 text-xs font-medium',
               'bg-muted/40 text-muted-foreground hover:bg-muted/60 hover:text-foreground',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50'
             )}
@@ -265,10 +268,12 @@ export function TaskRow({
               <img src={appIconSrc} alt="" className="size-3.5 shrink-0 rounded-sm" referrerPolicy="no-referrer" />
             ) : null}
             <span className="min-w-0 truncate">{primaryResource ? appLabel : 'App'}</span>
-            <ExternalLink
-              aria-hidden="true"
-              className="size-3 text-muted-foreground/80 group-hover:text-foreground/90"
-            />
+            <span className="hidden items-center group-hover:inline-flex group-focus-visible:inline-flex">
+              <ExternalLink
+                aria-hidden="true"
+                className="size-3 text-muted-foreground/80 group-hover:text-foreground/90"
+              />
+            </span>
           </Link>
         ) : null}
 
@@ -278,7 +283,7 @@ export function TaskRow({
             target="_blank"
             rel="noopener noreferrer"
             className={cn(
-              'inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium leading-none',
+              'inline-flex h-7 items-center gap-2 rounded-md px-2.5 text-xs font-medium',
               'bg-muted/40 text-muted-foreground hover:bg-muted/60 hover:text-foreground',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50'
             )}

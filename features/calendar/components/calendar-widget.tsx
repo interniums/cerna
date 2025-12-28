@@ -11,7 +11,7 @@ import {
   type SyntheticEvent,
 } from 'react'
 import { toast } from 'sonner'
-import { ExternalLink, Link2, MoreHorizontal, RefreshCcw, Settings2, Unlink2 } from 'lucide-react'
+import { ExternalLink, Link2, RefreshCcw, Settings2 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -19,44 +19,26 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { FormSubmitButton } from '@/components/forms/form-submit-button'
-import { FormSubmitSwitch } from '@/components/forms/form-submit-switch'
 import {
   disconnectCalendarAccountAction,
   toggleWorkflowCalendarVisibilityAction,
   type CalendarActionState,
 } from '@/features/calendar/actions'
 
-type ApiEvent = {
-  id: string
-  title: string
-  start: string
-  end: string | null
-  isAllDay: boolean
-  joinUrl: string | null
-  openUrl: string | null
-  accountId: string
-  accountEmail: string
-  provider: 'google' | 'microsoft'
-}
-
-type ApiAccount = {
-  id: string
-  provider: 'google' | 'microsoft'
-  email: string
-  displayName: string | null
-  enabled: boolean
-  lastError: string | null
-}
-
-type EventsResponse = { ok: true; accounts: ApiAccount[]; events: ApiEvent[] } | { ok: false; message: string }
+import { CalendarAccountsDialog } from './calendar-accounts-dialog'
+import type { ApiAccount, ApiEvent, DisconnectDialogState, EventsResponse } from './calendar-widget.types'
+import {
+  formatDuration,
+  formatEventSidebarTime,
+  getAccountDotClass,
+  getPrimaryEventUrl,
+  getProviderLabel,
+  groupEventsByDate,
+  openInNewTab,
+} from './calendar-widget.utils'
 
 const initialState: CalendarActionState = { ok: false, message: '', nonce: 0 }
-
-type DisconnectDialogState = { open: boolean; account: ApiAccount | null }
 
 function GoogleMark({ className }: { className?: string }) {
   return (
@@ -92,104 +74,11 @@ function MicrosoftMark({ className }: { className?: string }) {
   )
 }
 
-/** Format time for the sidebar column - stacked layout for mobile */
-function formatEventSidebarTime(startIso: string, isAllDay: boolean): { time: string; period: string } {
-  if (isAllDay) return { time: 'All', period: 'day' }
-  const t = Date.parse(startIso)
-  if (!Number.isFinite(t)) return { time: '--:--', period: '' }
-  const d = new Date(t)
-  const hours = d.getHours()
-  const minutes = d.getMinutes().toString().padStart(2, '0')
-  const hour12 = hours % 12 || 12
-  const period = hours >= 12 ? 'PM' : 'AM'
-  return { time: `${hour12}:${minutes}`, period }
-}
-
-/** Calculate duration between start and end */
-function formatDuration(startIso: string, endIso: string | null): string | null {
-  if (!endIso) return null
-  const startMs = Date.parse(startIso)
-  const endMs = Date.parse(endIso)
-  if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) return null
-  const diffMs = endMs - startMs
-  if (diffMs <= 0) return null
-  const diffMins = Math.round(diffMs / 60000)
-  if (diffMins < 60) return `${diffMins}m`
-  const hours = Math.floor(diffMins / 60)
-  const mins = diffMins % 60
-  if (mins === 0) return `${hours}h`
-  return `${hours}h ${mins}m`
-}
-
-/** Get date label for grouping: "Today", "Tomorrow", or formatted date */
-function getDateLabel(startIso: string): string {
-  const t = Date.parse(startIso)
-  if (!Number.isFinite(t)) return ''
-  const eventDate = new Date(t)
-  const now = new Date()
-
-  const eventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate())
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const tomorrow = new Date(today.getTime() + 86400000)
-
-  if (eventDay.getTime() === today.getTime()) return 'Today'
-  if (eventDay.getTime() === tomorrow.getTime()) return 'Tomorrow'
-  return eventDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
-}
-
-/** Group events by date label */
-function groupEventsByDate(events: ApiEvent[]): { label: string; events: ApiEvent[] }[] {
-  const groups: Map<string, ApiEvent[]> = new Map()
-
-  for (const event of events) {
-    const label = getDateLabel(event.start)
-    const existing = groups.get(label)
-    if (existing) {
-      existing.push(event)
-    } else {
-      groups.set(label, [event])
-    }
-  }
-
-  return Array.from(groups.entries()).map(([label, evts]) => ({ label, events: evts }))
-}
-
-function openInNewTab(url: string) {
-  window.open(url, '_blank', 'noopener,noreferrer')
-}
-
-function getPrimaryEventUrl(e: ApiEvent) {
-  return e.openUrl ?? e.joinUrl
-}
-
-const ACCOUNT_DOT_COLORS = [
-  'bg-sky-400',
-  'bg-emerald-400',
-  'bg-violet-400',
-  'bg-amber-400',
-  'bg-rose-400',
-  'bg-cyan-400',
-] as const
-
-function hashStringToIndex(value: string, mod: number) {
-  let h = 0
-  for (let i = 0; i < value.length; i++) h = (h * 31 + value.charCodeAt(i)) >>> 0
-  return mod === 0 ? 0 : h % mod
-}
-
-function getAccountDotClass(accountId: string) {
-  return ACCOUNT_DOT_COLORS[hashStringToIndex(accountId, ACCOUNT_DOT_COLORS.length)] ?? 'bg-sky-400'
-}
-
-function getProviderLabel(provider: ApiEvent['provider']) {
-  return provider === 'microsoft' ? 'Microsoft' : 'Google'
-}
-
 function CalendarEventSkeleton() {
   return (
     <div className="flex items-start gap-3 rounded-md px-2 py-2">
       {/* Time column - matches: w-10, stacked time + period */}
-      <div className="w-10 shrink-0 text-center">
+      <div className="w-10 shrink-0 self-center text-center">
         <Skeleton className="h-5 w-9 mx-auto" />
         <Skeleton className="h-4 w-5 mx-auto" />
       </div>
@@ -251,8 +140,8 @@ function EventsList({ events }: { events: ApiEvent[] }) {
 
   return (
     <div className="flex flex-col gap-1">
-      {groupedEvents.map((group) => (
-        <div key={group.label}>
+      {groupedEvents.map((group, idx) => (
+        <div key={`${group.label}:${idx}`}>
           <DateHeader label={group.label} />
           <div className="flex flex-col gap-1">
             {group.events.map((e) => (
@@ -268,7 +157,7 @@ function EventsList({ events }: { events: ApiEvent[] }) {
 function CalendarEventRow({ event }: { event: ApiEvent }) {
   const primaryUrl = getPrimaryEventUrl(event)
   const isClickable = Boolean(primaryUrl)
-  const { time, period } = formatEventSidebarTime(event.start, event.isAllDay)
+  const displayTime = formatEventSidebarTime(event.start, event.isAllDay)
   const providerLabel = getProviderLabel(event.provider)
   const dotClassName = getAccountDotClass(event.accountId)
   const duration = formatDuration(event.start, event.end)
@@ -316,10 +205,9 @@ function CalendarEventRow({ event }: { event: ApiEvent }) {
       onClick={handleRowClick}
       onKeyDown={handleRowKeyDown}
     >
-      {/* Time column - stacked layout for compact display */}
-      <div className="w-10 shrink-0 text-center">
-        <p className="text-sm font-mono text-muted-foreground leading-5">{time}</p>
-        <p className="text-[10px] font-mono text-muted-foreground/70 leading-4">{period}</p>
+      {/* Time column - single line for scanability */}
+      <div className="w-[76px] shrink-0 self-center text-center">
+        <p className="whitespace-nowrap text-sm font-mono text-muted-foreground leading-5">{displayTime}</p>
       </div>
 
       {/* Content - flexible, allows wrapping */}
@@ -328,7 +216,7 @@ function CalendarEventRow({ event }: { event: ApiEvent }) {
         <p className="text-sm font-semibold text-foreground leading-5 line-clamp-2">{event.title}</p>
 
         {/* Metadata row - provider + duration (no redundant time) */}
-        <div className="mt-0.5 flex items-center gap-1.5 text-xs leading-4 text-muted-foreground">
+        <div className="mt-0.5 flex items-center gap-1.5 text-xs leading-4 text-foreground/60">
           <Tooltip>
             <TooltipTrigger asChild>
               <button
@@ -537,7 +425,7 @@ export function CalendarWidget({ workflowId }: { workflowId: string }) {
   }, [maybeAutoRefresh])
 
   return (
-    <Card className="min-w-0 max-w-full overflow-hidden flex h-[375px] flex-col gap-0 pt-2 pb-0">
+    <Card className="min-w-0 max-w-full overflow-hidden flex h-[375px] flex-col gap-0 pt-2 pb-0 bg-transparent border-border/40 shadow-none">
       <CardHeader className="gap-1 pb-0 pt-2 px-4 sm:px-6">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
@@ -577,7 +465,7 @@ export function CalendarWidget({ workflowId }: { workflowId: string }) {
       <CardContent
         className={cn(
           // Match TaskList: everything under the separator is scrollable; no bottom padding so content isn't clipped.
-          'grid gap-3 min-w-0 px-4 sm:px-6 pt-2 flex-1 min-h-0 overflow-y-scroll overflow-x-hidden pr-4 scrollbar-gutter-stable pb-4'
+          'grid gap-3 min-w-0 px-4 sm:px-6 pt-2 flex-1 min-h-0 overflow-y-scroll overflow-x-hidden pr-4 scrollbar-gutter-stable py-4'
         )}
         aria-busy={loading ? true : undefined}
       >
@@ -617,7 +505,7 @@ export function CalendarWidget({ workflowId }: { workflowId: string }) {
                   <Link href={`/api/microsoft-calendar/connect?returnTo=${encodeURIComponent(`/app/w/${workflowId}`)}`}>
                     <span className="inline-flex items-center">
                       <MicrosoftMark className="mr-2" />
-                      Connect Microsoft
+                      {connectMicrosoftLabel}
                     </span>
                   </Link>
                 </Button>
@@ -656,146 +544,22 @@ export function CalendarWidget({ workflowId }: { workflowId: string }) {
             <EventsList events={events} />
           )}
         </div>
-
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Calendar accounts</DialogTitle>
-              <DialogDescription>Choose which accounts appear in this workflow.</DialogDescription>
-            </DialogHeader>
-
-            <div className="grid gap-2">
-              {accounts.map((a) => (
-                <div key={a.id} className="rounded-lg border border-border/60 p-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{a.displayName ?? a.email}</p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {a.email} · {a.provider === 'microsoft' ? 'Microsoft' : 'Google'}
-                      </p>
-                      {a.lastError ? <p className="mt-1 text-xs text-destructive">{a.lastError}</p> : null}
-                    </div>
-
-                    <div className="flex shrink-0 items-center gap-2">
-                      <form action={toggleAction} className="flex items-center gap-2">
-                        <input type="hidden" name="workflowId" value={workflowId} />
-                        <input type="hidden" name="accountId" value={a.id} />
-                        <input type="hidden" name="enabled" value={a.enabled ? 'false' : 'true'} />
-                        <span
-                          id={`show-in-workflow-${a.id}`}
-                          className="sr-only sm:not-sr-only text-xs text-muted-foreground whitespace-nowrap"
-                        >
-                          Show in workflow
-                        </span>
-                        <FormSubmitSwitch
-                          checked={a.enabled}
-                          aria-labelledby={`show-in-workflow-${a.id}`}
-                          pendingLabel="Saving…"
-                        />
-                      </form>
-
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={`Account actions for ${a.email}`}
-                          >
-                            <MoreHorizontal aria-hidden="true" className="size-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {a.lastError ? (
-                            <DropdownMenuItem asChild>
-                              <Link
-                                href={`/${
-                                  a.provider === 'microsoft'
-                                    ? 'api/microsoft-calendar/connect'
-                                    : 'api/google-calendar/connect'
-                                }?returnTo=${encodeURIComponent(`/app/w/${workflowId}`)}`}
-                              >
-                                Reconnect
-                              </Link>
-                            </DropdownMenuItem>
-                          ) : null}
-
-                          <DropdownMenuItem variant="destructive" onSelect={() => openDisconnectDialogForAccount(a)}>
-                            <Unlink2 aria-hidden="true" className="size-4" />
-                            Disconnect
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {!toggleState.ok && toggleState.message ? (
-              <p className="text-sm text-destructive" role="status" aria-live="polite">
-                {toggleState.message}
-              </p>
-            ) : null}
-
-            {!disconnectState.ok && disconnectState.message ? (
-              <p className="text-sm text-destructive" role="status" aria-live="polite">
-                {disconnectState.message}
-              </p>
-            ) : null}
-
-            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-              <Button asChild type="button" variant="secondary">
-                <Link href={`/api/google-calendar/connect?returnTo=${encodeURIComponent(`/app/w/${workflowId}`)}`}>
-                  <span className="inline-flex items-center">
-                    <GoogleMark className="mr-2" />
-                    {connectGoogleLabel}
-                  </span>
-                </Link>
-              </Button>
-              <Button asChild type="button" variant="secondary">
-                <Link href={`/api/microsoft-calendar/connect?returnTo=${encodeURIComponent(`/app/w/${workflowId}`)}`}>
-                  <span className="inline-flex items-center">
-                    <MicrosoftMark className="mr-2" />
-                    {connectMicrosoftLabel}
-                  </span>
-                </Link>
-              </Button>
-            </div>
-
-            <Dialog open={disconnectDialog.open} onOpenChange={handleDisconnectDialogOpenChange}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Disconnect account?</DialogTitle>
-                  <DialogDescription>
-                    This removes access for{' '}
-                    <span className="font-medium text-foreground">
-                      {disconnectDialog.account?.email ?? 'this account'}
-                    </span>
-                    . You can reconnect anytime.
-                  </DialogDescription>
-                </DialogHeader>
-
-                <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-                  <Button type="button" variant="secondary" onClick={handleCancelDisconnect}>
-                    Cancel
-                  </Button>
-
-                  <form action={disconnectAction}>
-                    <input type="hidden" name="accountId" value={disconnectDialog.account?.id ?? ''} />
-                    <FormSubmitButton
-                      variant="destructive"
-                      disabled={!disconnectDialog.account}
-                      idleText="Disconnect"
-                      pendingText="Disconnecting…"
-                      idleIcon={<Unlink2 aria-hidden="true" className="mr-2 size-4" />}
-                    />
-                  </form>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </DialogContent>
-        </Dialog>
+        <CalendarAccountsDialog
+          open={open}
+          onOpenChange={setOpen}
+          workflowId={workflowId}
+          accounts={accounts}
+          toggleAction={toggleAction}
+          toggleState={toggleState}
+          connectGoogleLabel={connectGoogleLabel}
+          connectMicrosoftLabel={connectMicrosoftLabel}
+          disconnectDialog={disconnectDialog}
+          onDisconnectDialogOpenChange={handleDisconnectDialogOpenChange}
+          onOpenDisconnectDialogForAccount={openDisconnectDialogForAccount}
+          onCancelDisconnect={handleCancelDisconnect}
+          disconnectAction={disconnectAction}
+          disconnectState={disconnectState}
+        />
       </CardContent>
     </Card>
   )

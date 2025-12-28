@@ -14,6 +14,8 @@ export async function AppSidebar({ userId, workflowId }: AppSidebarProps) {
   const navItems = [
     { href: `/app/w/${workflowId}`, label: 'Dashboard', iconName: 'dashboard' as const },
     { href: `/app/w/${workflowId}/morning`, label: 'Morning', iconName: 'morning' as const },
+    { href: `/app/w/${workflowId}/inbox`, label: 'Inbox', iconName: 'inbox' as const },
+    { href: `/app/w/${workflowId}/notes`, label: 'Notes', iconName: 'notes' as const },
     { href: `/app/w/${workflowId}/resources`, label: 'Resources', iconName: 'resources' as const },
   ]
 

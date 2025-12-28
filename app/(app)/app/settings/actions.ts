@@ -7,6 +7,7 @@ import { getSiteUrl } from '@/lib/site/url'
 import { solidgateCancelSubscriptionByCustomer } from '@/lib/solidgate/client'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireServerUser } from '@/lib/supabase/auth'
+import { deleteIntegrationAccount } from '@/lib/db/integrations'
 
 async function requireSolidgateCustomerAccountId(userId: string) {
   const supabase = await createSupabaseServerClient()
@@ -39,5 +40,31 @@ export async function cancelSubscriptionAction() {
   await solidgateCancelSubscriptionByCustomer({ customerAccountId })
 
   // Entitlements will update via webhook; keep UX predictable.
+  redirect(`${getSiteUrl()}/app/settings`)
+}
+
+export async function disconnectSlackAction(formData: FormData) {
+  const user = await requireServerUser()
+  const accountId = String(formData.get('accountId') ?? '')
+  if (!accountId) redirect(`${getSiteUrl()}/app/settings`)
+
+  // This deletes the integration account row; token rows and cursors cascade.
+  await deleteIntegrationAccount({ userId: user.id, accountId })
+  redirect(`${getSiteUrl()}/app/settings`)
+}
+
+export async function disconnectNotionAction(formData: FormData) {
+  const user = await requireServerUser()
+  const accountId = String(formData.get('accountId') ?? '')
+  if (!accountId) redirect(`${getSiteUrl()}/app/settings`)
+  await deleteIntegrationAccount({ userId: user.id, accountId })
+  redirect(`${getSiteUrl()}/app/settings`)
+}
+
+export async function disconnectAsanaAction(formData: FormData) {
+  const user = await requireServerUser()
+  const accountId = String(formData.get('accountId') ?? '')
+  if (!accountId) redirect(`${getSiteUrl()}/app/settings`)
+  await deleteIntegrationAccount({ userId: user.id, accountId })
   redirect(`${getSiteUrl()}/app/settings`)
 }

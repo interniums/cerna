@@ -358,7 +358,7 @@ export function TaskList({
     '-mt-2 grid w-full flex-1 min-h-0 min-w-0 content-start gap-2 overflow-y-scroll overflow-x-hidden pr-4 py-6 scrollbar-gutter-stable'
 
   return (
-    <Card className="flex h-[600px] flex-col gap-1.5 pt-2 pb-0">
+    <Card className="flex h-[600px] flex-col gap-1.5 pt-2 pb-0 bg-transparent border-border/40 shadow-none">
       <CardHeader className="gap-1 pb-0 pt-2">
         <div className="flex items-center justify-between gap-3">
           <CardTitle className="text-sm">Tasks</CardTitle>
@@ -376,7 +376,7 @@ export function TaskList({
             <Separator className="mt-2" />
             <div className={tabContentClassName}>
               <div className="mx-auto w-full max-w-3xl min-w-0">
-                <div className="w-full min-w-0 overflow-hidden rounded-lg border border-border/60 bg-card/30 divide-y divide-border/60">
+                <div className="w-full min-w-0 overflow-hidden rounded-lg border border-border/50 bg-transparent divide-y divide-border/50">
                   <div className="h-12" />
                   <div className="h-12" />
                   <div className="h-12" />
@@ -414,7 +414,7 @@ export function TaskList({
                 canDragDrop ? (
                   <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleTodayDragEnd}>
                     <SortableContext items={todayTasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-                      <div className="w-full min-w-0 overflow-hidden rounded-lg border border-border/60 bg-card/30 divide-y divide-border/60">
+                      <div className="w-full min-w-0 overflow-hidden rounded-lg border border-border/50 bg-transparent divide-y divide-border/50">
                         {todayTasks.map((t) => (
                           <SortableTaskItem key={t.id} task={t} onLocalStatusChange={handleLocalStatusChange} hideDueDate />
                         ))}
@@ -422,7 +422,7 @@ export function TaskList({
                     </SortableContext>
                   </DndContext>
                 ) : (
-                  <div className="w-full min-w-0 overflow-hidden rounded-lg border border-border/60 bg-card/30 divide-y divide-border/60">
+                  <div className="w-full min-w-0 overflow-hidden rounded-lg border border-border/50 bg-transparent divide-y divide-border/50">
                     {todayTasks.map((t) => (
                       <StaticTaskItem key={t.id} task={t} onLocalStatusChange={handleLocalStatusChange} hideDueDate />
                     ))}
@@ -443,7 +443,7 @@ export function TaskList({
                 canDragDrop ? (
                   <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleOtherDragEnd}>
                     <SortableContext items={otherTasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-                      <div className="w-full min-w-0 overflow-hidden rounded-lg border border-border/60 bg-card/30 divide-y divide-border/60">
+                      <div className="w-full min-w-0 overflow-hidden rounded-lg border border-border/50 bg-transparent divide-y divide-border/50">
                         {otherTasks.map((t) => (
                           <SortableTaskItem key={t.id} task={t} onLocalStatusChange={handleLocalStatusChange} />
                         ))}
@@ -451,7 +451,7 @@ export function TaskList({
                     </SortableContext>
                   </DndContext>
                 ) : (
-                  <div className="w-full min-w-0 overflow-hidden rounded-lg border border-border/60 bg-card/30 divide-y divide-border/60">
+                  <div className="w-full min-w-0 overflow-hidden rounded-lg border border-border/50 bg-transparent divide-y divide-border/50">
                     {otherTasks.map((t) => (
                       <StaticTaskItem key={t.id} task={t} onLocalStatusChange={handleLocalStatusChange} />
                     ))}
@@ -472,7 +472,7 @@ export function TaskList({
                 canDragDrop ? (
                   <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDoneDragEnd}>
                     <SortableContext items={done.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-                      <div className="w-full min-w-0 overflow-hidden rounded-lg border border-border/60 bg-card/30 divide-y divide-border/60">
+                      <div className="w-full min-w-0 overflow-hidden rounded-lg border border-border/50 bg-transparent divide-y divide-border/50">
                         {done.map((t) => (
                           <SortableTaskItem key={t.id} task={t} onLocalStatusChange={handleLocalStatusChange} />
                         ))}
@@ -480,7 +480,7 @@ export function TaskList({
                     </SortableContext>
                   </DndContext>
                 ) : (
-                  <div className="w-full min-w-0 overflow-hidden rounded-lg border border-border/60 bg-card/30 divide-y divide-border/60">
+                  <div className="w-full min-w-0 overflow-hidden rounded-lg border border-border/50 bg-transparent divide-y divide-border/50">
                     {done.map((t) => (
                       <StaticTaskItem key={t.id} task={t} onLocalStatusChange={handleLocalStatusChange} />
                     ))}

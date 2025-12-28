@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 
 import { createWorkflowAction, type WorkflowActionState } from '@/features/workflows/actions'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import {
   Dialog,
   DialogClose,
@@ -24,6 +25,7 @@ const initialState: WorkflowActionState = { ok: false, message: '' }
 
 type NewWorkflowDialogProps = {
   triggerLabel?: string
+  triggerClassName?: string
 }
 
 function ThemePicker({
@@ -58,7 +60,7 @@ function ThemePicker({
   )
 }
 
-export function NewWorkflowDialog({ triggerLabel = 'New workflow' }: NewWorkflowDialogProps) {
+export function NewWorkflowDialog({ triggerLabel = 'New workflow', triggerClassName }: NewWorkflowDialogProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [resetKey, setResetKey] = useState(0)
@@ -112,7 +114,14 @@ export function NewWorkflowDialog({ triggerLabel = 'New workflow' }: NewWorkflow
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <Button type="button" variant="secondary" size="sm" onClick={handleTriggerClick} aria-label={triggerLabel}>
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={handleTriggerClick}
+        aria-label={triggerLabel}
+        className={cn(triggerClassName)}
+      >
         <Plus aria-hidden="true" className="mr-2 size-4" />
         {triggerLabel}
       </Button>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Plus } from 'lucide-react'
 import { createResourceAction } from '@/features/resources/actions'
 import { ResourceCreateForm } from '@/features/resources/components/resource-create-form'
@@ -34,15 +34,19 @@ export function NewResourceDialog({
   const [resetKey, setResetKey] = useState(0)
 
   const lastUsedStorageKey = `cerna:lastResourceCategoryId:${workflowId}`
-  const [rememberedCategoryId] = useState<string | undefined>(() => {
-    if (typeof window === 'undefined') return undefined
-    try {
-      const raw = window.localStorage.getItem(lastUsedStorageKey)
-      return raw === null ? undefined : raw
-    } catch {
-      return undefined
-    }
-  })
+  // Avoid reading localStorage during SSR/initial hydration render (can cause hydration mismatches).
+  const [rememberedCategoryId, setRememberedCategoryId] = useState<string | undefined>(undefined)
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      try {
+        const raw = window.localStorage.getItem(lastUsedStorageKey)
+        setRememberedCategoryId(raw === null ? undefined : raw)
+      } catch {
+        setRememberedCategoryId(undefined)
+      }
+    })
+  }, [lastUsedStorageKey])
 
   const rememberedIsValid =
     rememberedCategoryId === '' || (rememberedCategoryId ? categories.some((c) => c.id === rememberedCategoryId) : false)

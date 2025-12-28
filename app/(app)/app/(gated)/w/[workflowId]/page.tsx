@@ -1,4 +1,3 @@
-import { Separator } from '@/components/ui/separator'
 import { requireServerUser } from '@/lib/supabase/auth'
 import { listTasks } from '@/lib/db/tasks'
 import { CommandCenterClient } from '@/features/command-center/components/command-center-client'
@@ -48,16 +47,12 @@ export default async function WorkflowHomePage({ params, searchParams }: Workflo
     <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
       {/* Keep header fixed; only the content below the separator should scroll. */}
       <div className="shrink-0 pt-1">
-        <div className="flex flex-col gap-3 pb-4 lg:pr-4 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-        </div>
-
-        <div className="lg:pr-4">
-          <Separator />
+        <div className="flex flex-col gap-2 pb-4 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden pt-4 pb-6 lg:pr-4">
+      <div className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden pt-0 pb-6">
         <PageViewTracker workflowId={workflowId} name="view_dashboard" />
         <CommandCenterClient
           workflowId={workflowId}

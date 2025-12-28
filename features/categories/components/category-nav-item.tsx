@@ -21,13 +21,23 @@ export function CategoryNavItem({ workflowId, id, name }: CategoryNavItemProps) 
   const pathname = usePathname()
   const href = useMemo(() => `/app/w/${workflowId}/category/${id}`, [workflowId, id])
   const isActive = pathname === href
+  const { isCollapsed, collapse } = useSidebar()
 
   return (
     <Link
       href={href}
+      onClick={(e) => {
+        if (isCollapsed) return
+        if (e.defaultPrevented) return
+        if (e.button !== 0) return
+        if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return
+        collapse()
+      }}
       className={cn(
-        'block w-full min-w-0 rounded-md px-2 py-1.5 text-sm outline-none transition-colors focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-        isActive ? 'bg-accent text-foreground' : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+        'block w-full min-w-0 rounded-md border border-transparent px-2 py-1.5 text-sm outline-none transition-colors focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+        isActive
+          ? 'border-primary/25 bg-primary/10 text-foreground shadow-sm'
+          : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground'
       )}
     >
       <span className="block min-w-0 truncate">{name}</span>
@@ -42,19 +52,33 @@ type CategoryNavItemCollapsibleProps = {
   icon?: LucideIcon
 }
 
-export function CategoryNavItemCollapsible({ workflowId, id, name, icon: Icon = FolderClosed }: CategoryNavItemCollapsibleProps) {
+export function CategoryNavItemCollapsible({
+  workflowId,
+  id,
+  name,
+  icon: Icon = FolderClosed,
+}: CategoryNavItemCollapsibleProps) {
   const pathname = usePathname()
-  const { isCollapsed } = useSidebar()
+  const { isCollapsed, collapse } = useSidebar()
   const href = useMemo(() => `/app/w/${workflowId}/category/${id}`, [workflowId, id])
   const isActive = pathname === href
 
   const content = (
     <Link
       href={href}
+      onClick={(e) => {
+        if (isCollapsed) return
+        if (e.defaultPrevented) return
+        if (e.button !== 0) return
+        if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return
+        collapse()
+      }}
       className={cn(
-        'flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors',
+        'flex items-center gap-2.5 rounded-md border border-transparent px-2.5 py-2 text-sm transition-colors',
         'outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
-        isActive ? 'bg-accent text-foreground' : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+        isActive
+          ? 'border-primary/25 bg-primary/10 text-foreground shadow-sm'
+          : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground',
         isCollapsed && 'justify-center px-2'
       )}
     >

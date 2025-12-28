@@ -57,7 +57,10 @@ function SelectScrollUpButton({ className, ...props }: React.ComponentProps<type
   )
 }
 
-function SelectScrollDownButton({ className, ...props }: React.ComponentProps<typeof SelectPrimitive.ScrollDownButton>) {
+function SelectScrollDownButton({
+  className,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.ScrollDownButton>) {
   return (
     <SelectPrimitive.ScrollDownButton
       data-slot="select-scroll-down-button"
@@ -83,6 +86,8 @@ function SelectContent({
           [
             'bg-popover text-popover-foreground',
             'relative z-50 min-w-32 overflow-hidden rounded-md border shadow-md',
+            // Cap dropdown height so long lists scroll instead of growing off-screen.
+            'max-h-[min(240px,var(--radix-select-content-available-height))]',
             'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
             'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
             'data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2',
@@ -98,7 +103,14 @@ function SelectContent({
         <SelectScrollUpButton />
         <SelectPrimitive.Viewport
           data-slot="select-viewport"
-          className={cn('p-1', position === 'popper' && 'w-full min-w-(--radix-select-trigger-width)')}
+          className={cn(
+            [
+              'p-1',
+              'max-h-[min(240px,var(--radix-select-content-available-height))] overflow-y-auto',
+              position === 'popper' && 'w-full min-w-(--radix-select-trigger-width)',
+            ],
+            undefined
+          )}
         >
           {children}
         </SelectPrimitive.Viewport>
@@ -109,7 +121,13 @@ function SelectContent({
 }
 
 function SelectLabel({ className, ...props }: React.ComponentProps<typeof SelectPrimitive.Label>) {
-  return <SelectPrimitive.Label data-slot="select-label" className={cn('px-2 py-1.5 text-xs font-medium', className)} {...props} />
+  return (
+    <SelectPrimitive.Label
+      data-slot="select-label"
+      className={cn('px-2 py-1.5 text-xs font-medium', className)}
+      {...props}
+    />
+  )
 }
 
 function SelectItem({ className, children, ...props }: React.ComponentProps<typeof SelectPrimitive.Item>) {
@@ -141,7 +159,13 @@ function SelectItem({ className, children, ...props }: React.ComponentProps<type
 }
 
 function SelectSeparator({ className, ...props }: React.ComponentProps<typeof SelectPrimitive.Separator>) {
-  return <SelectPrimitive.Separator data-slot="select-separator" className={cn('bg-muted -mx-1 my-1 h-px', className)} {...props} />
+  return (
+    <SelectPrimitive.Separator
+      data-slot="select-separator"
+      className={cn('bg-muted -mx-1 my-1 h-px', className)}
+      {...props}
+    />
+  )
 }
 
 export {
@@ -156,5 +180,3 @@ export {
   SelectTrigger,
   SelectValue,
 }
-
-
