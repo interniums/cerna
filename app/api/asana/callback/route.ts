@@ -7,6 +7,7 @@ import { exchangeAsanaCodeForTokens } from '@/lib/integrations/asana/oauth'
 import { fetchAsanaMe } from '@/lib/integrations/asana/api'
 import { upsertIntegrationAccount } from '@/lib/db/integrations'
 import { upsertIntegrationTokens } from '@/lib/integrations/tokens'
+import { logIntegrationError } from '@/lib/integrations/error-logging'
 
 export async function GET(request: Request) {
   const supabase = await createSupabaseServerClient()
@@ -15,6 +16,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL('/login?error=callback', getSiteUrl()))
   }
   const user = userRes.data.user
+  let integrationAccountId: string | null = null
 
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
@@ -39,6 +41,7 @@ export async function GET(request: Request) {
     tokens = await exchangeAsanaCodeForTokens({ code, redirectUri })
   } catch (error) {
     console.error('[asana callback] token exchange failed', error)
+    await logIntegrationError({ userId: user.id, provider: 'asana', stage: 'oauth_exchange', error })
     const url = new URL(safe, getSiteUrl())
     url.searchParams.set('asana', 'error')
     return NextResponse.redirect(url)
@@ -49,26 +52,43 @@ export async function GET(request: Request) {
     me = await fetchAsanaMe({ token: tokens.accessToken })
   } catch (error) {
     console.error('[asana callback] me fetch failed', error)
+    await logIntegrationError({ userId: user.id, provider: 'asana', stage: 'fetch_me', error })
     const url = new URL(safe, getSiteUrl())
     url.searchParams.set('asana', 'error')
     return NextResponse.redirect(url)
   }
 
-  const account = await upsertIntegrationAccount({
-    userId: user.id,
-    provider: 'asana',
-    externalAccountId: me.gid,
-    displayName: me.name,
-    meta: { email: me.email, defaultWorkspaceGid: me.defaultWorkspaceGid },
-  })
+  let account
+  try {
+    account = await upsertIntegrationAccount({
+      userId: user.id,
+      provider: 'asana',
+      externalAccountId: me.gid,
+      displayName: me.name,
+      meta: { email: me.email, defaultWorkspaceGid: me.defaultWorkspaceGid },
+    })
+    integrationAccountId = account.id
+  } catch (error) {
+    await logIntegrationError({ userId: user.id, provider: 'asana', stage: 'upsert_account', error })
+    const url = new URL(safe, getSiteUrl())
+    url.searchParams.set('asana', 'error')
+    return NextResponse.redirect(url)
+  }
 
-  await upsertIntegrationTokens({
-    integrationAccountId: account.id,
-    accessToken: tokens.accessToken,
-    refreshToken: tokens.refreshToken,
-    expiresAt: tokens.expiresAt,
-    scopes: [],
-  })
+  try {
+    await upsertIntegrationTokens({
+      integrationAccountId: account.id,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      expiresAt: tokens.expiresAt,
+      scopes: [],
+    })
+  } catch (error) {
+    await logIntegrationError({ userId: user.id, provider: 'asana', stage: 'store_tokens', integrationAccountId, error })
+    const url = new URL(safe, getSiteUrl())
+    url.searchParams.set('asana', 'error')
+    return NextResponse.redirect(url)
+  }
 
   return NextResponse.redirect(new URL(safe, getSiteUrl()))
 }

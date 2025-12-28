@@ -27,7 +27,9 @@ export default async function WorkflowScopedLayout({ children, params }: Workflo
 
   // Next.js 16 `cookies()` is async in RSC/Turbopack.
   const cookieStore = await cookies()
-  const initialSidebarCollapsed = cookieStore.get(SIDEBAR_COOKIE_KEY)?.value === 'true'
+  const persisted = cookieStore.get(SIDEBAR_COOKIE_KEY)?.value
+  // Default to collapsed for new users (no persisted preference yet).
+  const initialSidebarCollapsed = persisted ? persisted === 'true' : true
 
   return (
     <WorkflowShellClient

@@ -6,6 +6,7 @@ import { useEffect } from 'react'
 import { SidebarProvider } from '@/components/app/sidebar-context'
 import { useSidebar } from '@/components/app/sidebar-context'
 import { ScrollYFade } from '@/components/ui/scroll-y-fade'
+import { cn } from '@/lib/utils'
 
 type WorkflowShellClientProps = {
   sidebar: ReactNode
@@ -47,6 +48,50 @@ function SidebarOverlay({ sidebar }: { sidebar: ReactNode }) {
   )
 }
 
+function WorkflowShellFrame({
+  sidebar,
+  header,
+  afterHeader,
+  children,
+  workflowTheme,
+}: {
+  sidebar: ReactNode
+  header: ReactNode
+  afterHeader?: ReactNode
+  children: ReactNode
+  workflowTheme?: string
+}) {
+  const { isCollapsed } = useSidebar()
+
+  return (
+    <div
+      className={cn(
+        'relative h-full min-h-0 min-w-0 overflow-x-hidden px-4 pt-3 pb-0 md:px-6',
+        // When collapsed, reserve space for the docked rail so it never overlaps main content.
+        // (Expanded state remains an intentional overlay.)
+        isCollapsed && 'pl-[84px] sm:pl-[88px] md:pl-[96px]'
+      )}
+      data-workflow-theme={workflowTheme}
+    >
+      {/* Main content */}
+      <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
+        <div className="mx-auto flex h-full min-h-0 w-full min-w-0 max-w-6xl flex-col">
+          <div className="pb-2 min-w-0">
+            <div className="min-w-0">{header}</div>
+          </div>
+
+          {afterHeader}
+          <ScrollYFade className="flex-1 min-h-0" viewportClassName="overflow-y-auto overflow-x-hidden">
+            {children}
+          </ScrollYFade>
+        </div>
+      </div>
+
+      <SidebarOverlay sidebar={sidebar} />
+    </div>
+  )
+}
+
 export function WorkflowShellClient({
   sidebar,
   header,
@@ -57,26 +102,9 @@ export function WorkflowShellClient({
 }: WorkflowShellClientProps) {
   return (
     <SidebarProvider initialCollapsed={initialSidebarCollapsed}>
-      <div
-        className="relative h-full min-h-0 min-w-0 overflow-x-hidden px-4 pt-3 pb-0 md:px-6"
-        data-workflow-theme={workflowTheme}
-      >
-        {/* Main content */}
-        <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
-          <div className="mx-auto flex h-full min-h-0 w-full min-w-0 max-w-6xl flex-col">
-            <div className="pb-2 min-w-0">
-              <div className="min-w-0">{header}</div>
-            </div>
-
-            {afterHeader}
-            <ScrollYFade className="flex-1 min-h-0" viewportClassName="overflow-y-auto overflow-x-hidden">
-              {children}
-            </ScrollYFade>
-          </div>
-        </div>
-
-        <SidebarOverlay sidebar={sidebar} />
-      </div>
+      <WorkflowShellFrame sidebar={sidebar} header={header} afterHeader={afterHeader} workflowTheme={workflowTheme}>
+        {children}
+      </WorkflowShellFrame>
     </SidebarProvider>
   )
 }

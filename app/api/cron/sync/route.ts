@@ -5,6 +5,7 @@ import { canSyncNow, markSyncError, markSyncSuccess } from '@/lib/integrations/s
 import { syncSlackMentionsForAccount } from '@/lib/integrations/slack/sync-admin'
 import { syncNotionRecentForAccount } from '@/lib/integrations/notion/sync-admin'
 import { syncAsanaMyTasksForAccount } from '@/lib/integrations/asana/sync-admin'
+import { logIntegrationError } from '@/lib/integrations/error-logging'
 
 function requireCronAuth(request: Request) {
   const secret = process.env.CRON_SECRET
@@ -42,6 +43,13 @@ export async function POST(request: Request) {
         failed++
         const msg = e instanceof Error ? e.message : 'Sync failed.'
         await markSyncError({ account, message: msg })
+        await logIntegrationError({
+          userId: account.user_id,
+          provider: account.provider,
+          stage: 'cron_sync',
+          integrationAccountId: account.id,
+          error: e,
+        })
       }
     }
 

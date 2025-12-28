@@ -69,6 +69,8 @@ export function AppSidebarClient({
         'flex h-full flex-col rounded-2xl border bg-card/25 backdrop-blur-xl supports-backdrop-filter:bg-card/15 transition-[width] duration-200 ease-out',
         'border-border/50 shadow-[0_10px_30px_rgba(0,0,0,0.08)]',
         'dark:border-white/10 dark:shadow-[0_18px_50px_rgba(0,0,0,0.55)]',
+        // Never let internal content bleed beyond the sidebar width (important for collapsed rail on small screens).
+        'overflow-hidden',
         isCollapsed ? 'w-14 px-1.5 py-3' : 'w-60 px-3 py-4',
         ''
       )}

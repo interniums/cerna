@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { syncNotionRecent } from '@/lib/integrations/notion/sync'
+import { logIntegrationError } from '@/lib/integrations/error-logging'
 
 export async function POST() {
   const supabase = await createSupabaseServerClient()
@@ -9,9 +10,14 @@ export async function POST() {
   if (userRes.error || !userRes.data.user) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
   const user = userRes.data.user
 
-  const result = await syncNotionRecent({ userId: user.id })
-  if (result.error) return NextResponse.json({ ok: false, error: result.error }, { status: 400 })
-  return NextResponse.json({ ok: true, imported: result.imported })
+  try {
+    const result = await syncNotionRecent({ userId: user.id })
+    if (result.error) return NextResponse.json({ ok: false, error: result.error }, { status: 400 })
+    return NextResponse.json({ ok: true, imported: result.imported })
+  } catch (e: unknown) {
+    await logIntegrationError({ userId: user.id, provider: 'notion', stage: 'api_sync', error: e })
+    return NextResponse.json({ ok: false, error: 'sync_failed' }, { status: 500 })
+  }
 }
 
 
