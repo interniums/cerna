@@ -13,7 +13,11 @@ function isExpiringSoon(expiresAtIso: string | null) {
   return ms - Date.now() < 60_000
 }
 
-export async function syncAsanaMyTasks(input: { userId: string }) {
+type SyncAsanaMyTasksError = 'no_asana_account' | 'missing_tokens' | 'refresh_failed' | 'missing_workspace'
+
+export async function syncAsanaMyTasks(input: {
+  userId: string
+}): Promise<{ imported: number; error: SyncAsanaMyTasksError | null }> {
   const accounts = await listIntegrationAccounts({ userId: input.userId, provider: 'asana' })
   if (accounts.length === 0) return { imported: 0, error: 'no_asana_account' as const }
 
@@ -62,7 +66,9 @@ export async function syncAsanaMyTasks(input: { userId: string }) {
   const items = tasks
     .filter((t) => typeof t.gid === 'string' && typeof t.permalink_url === 'string')
     .map((t) => {
-      const dueAt = (typeof t.due_at === 'string' && t.due_at) || (typeof t.due_on === 'string' && t.due_on ? `${t.due_on}T00:00:00.000Z` : null)
+      const dueAt =
+        (typeof t.due_at === 'string' && t.due_at) ||
+        (typeof t.due_on === 'string' && t.due_on ? `${t.due_on}T00:00:00.000Z` : null)
       const occurredAt = typeof t.modified_at === 'string' ? t.modified_at : null
       const title = typeof t.name === 'string' ? t.name : 'Asana task'
       const summary = typeof t.notes === 'string' && t.notes.trim() ? t.notes.slice(0, 4000) : null
@@ -83,7 +89,5 @@ export async function syncAsanaMyTasks(input: { userId: string }) {
     })
 
   await upsertExternalItems({ userId: input.userId, items })
-  return { imported: items.length, error: null as const }
+  return { imported: items.length, error: null }
 }
-
-

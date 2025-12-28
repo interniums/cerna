@@ -16,7 +16,9 @@ function tsToIso(ts: string) {
   return new Date(n * 1000).toISOString()
 }
 
-export async function syncSlackMentions(input: { userId: string }) {
+type SyncSlackMentionsError = 'no_slack_account' | 'missing_tokens' | 'missing_authed_user'
+
+export async function syncSlackMentions(input: { userId: string }): Promise<{ imported: number; error: SyncSlackMentionsError | null }> {
   const accounts = await listIntegrationAccounts({ userId: input.userId, provider: 'slack' })
   if (accounts.length === 0) {
     return { imported: 0, error: 'no_slack_account' as const }
@@ -72,7 +74,7 @@ export async function syncSlackMentions(input: { userId: string }) {
     })
 
   await upsertExternalItems({ userId: input.userId, items })
-  return { imported: items.length, error: null as const }
+  return { imported: items.length, error: null }
 }
 
 

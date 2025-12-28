@@ -5,7 +5,11 @@ import { getIntegrationTokens } from '@/lib/integrations/tokens'
 import { searchNotion } from '@/lib/integrations/notion/api'
 import { upsertExternalItems } from '@/lib/db/external-items'
 
-export async function syncNotionRecent(input: { userId: string }) {
+type SyncNotionRecentError = 'no_notion_account' | 'missing_tokens'
+
+export async function syncNotionRecent(input: {
+  userId: string
+}): Promise<{ imported: number; error: SyncNotionRecentError | null }> {
   const accounts = await listIntegrationAccounts({ userId: input.userId, provider: 'notion' })
   if (accounts.length === 0) return { imported: 0, error: 'no_notion_account' as const }
 
@@ -39,7 +43,5 @@ export async function syncNotionRecent(input: { userId: string }) {
     })
 
   await upsertExternalItems({ userId: input.userId, items })
-  return { imported: items.length, error: null as const }
+  return { imported: items.length, error: null }
 }
-
-

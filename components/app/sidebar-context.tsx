@@ -24,7 +24,9 @@ export function useSidebar() {
 
 function setSidebarCookie(isCollapsed: boolean) {
   try {
-    document.cookie = `${COOKIE_KEY}=${isCollapsed ? 'true' : 'false'}; Path=/; Max-Age=${ONE_YEAR_SECONDS}; SameSite=Lax`
+    document.cookie = `${COOKIE_KEY}=${
+      isCollapsed ? 'true' : 'false'
+    }; Path=/; Max-Age=${ONE_YEAR_SECONDS}; SameSite=Lax`
   } catch {
     // Ignore cookie errors
   }
