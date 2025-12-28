@@ -11,6 +11,7 @@ import { syncSlackMentions } from '@/lib/integrations/slack/sync'
 import { createNote } from '@/lib/db/notes'
 import { syncNotionRecent } from '@/lib/integrations/notion/sync'
 import { syncAsanaMyTasks } from '@/lib/integrations/asana/sync'
+import { logIntegrationError } from '@/lib/integrations/error-logging'
 
 export async function syncSlackNowAction(formData: FormData) {
   const user = await requireServerUser()
@@ -19,7 +20,16 @@ export async function syncSlackNowAction(formData: FormData) {
 
   // We always redirect back; page will show latest data.
   const usp = new URLSearchParams()
-  if (result.error) usp.set('sync', 'error')
+  if (result.error) {
+    await logIntegrationError({
+      userId: user.id,
+      provider: 'slack',
+      stage: 'sync_button',
+      error: result.error,
+      details: { workflowId },
+    })
+    usp.set('sync', 'error')
+  }
   const suffix = usp.size ? `?${usp.toString()}` : ''
   redirect(`${getSiteUrl()}/app/w/${workflowId}/inbox${suffix}`)
 }
@@ -29,7 +39,16 @@ export async function syncNotionNowAction(formData: FormData) {
   const workflowId = String(formData.get('workflowId') ?? '')
   const result = await syncNotionRecent({ userId: user.id })
   const usp = new URLSearchParams()
-  if (result.error) usp.set('sync', 'error')
+  if (result.error) {
+    await logIntegrationError({
+      userId: user.id,
+      provider: 'notion',
+      stage: 'sync_button',
+      error: result.error,
+      details: { workflowId },
+    })
+    usp.set('sync', 'error')
+  }
   const suffix = usp.size ? `?${usp.toString()}` : ''
   redirect(`${getSiteUrl()}/app/w/${workflowId}/inbox${suffix}`)
 }
@@ -39,7 +58,16 @@ export async function syncAsanaNowAction(formData: FormData) {
   const workflowId = String(formData.get('workflowId') ?? '')
   const result = await syncAsanaMyTasks({ userId: user.id })
   const usp = new URLSearchParams()
-  if (result.error) usp.set('sync', 'error')
+  if (result.error) {
+    await logIntegrationError({
+      userId: user.id,
+      provider: 'asana',
+      stage: 'sync_button',
+      error: result.error,
+      details: { workflowId },
+    })
+    usp.set('sync', 'error')
+  }
   const suffix = usp.size ? `?${usp.toString()}` : ''
   redirect(`${getSiteUrl()}/app/w/${workflowId}/inbox${suffix}`)
 }
@@ -115,5 +143,3 @@ export async function convertExternalItemToNoteAction(formData: FormData) {
 
   redirect(`${getSiteUrl()}/app/w/${workflowId}/notes/${note.id}`)
 }
-
-

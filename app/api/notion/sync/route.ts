@@ -12,7 +12,10 @@ export async function POST() {
 
   try {
     const result = await syncNotionRecent({ userId: user.id })
-    if (result.error) return NextResponse.json({ ok: false, error: result.error }, { status: 400 })
+    if (result.error) {
+      await logIntegrationError({ userId: user.id, provider: 'notion', stage: 'api_sync_result', error: result.error })
+      return NextResponse.json({ ok: false, error: result.error }, { status: 400 })
+    }
     return NextResponse.json({ ok: true, imported: result.imported })
   } catch (e: unknown) {
     await logIntegrationError({ userId: user.id, provider: 'notion', stage: 'api_sync', error: e })

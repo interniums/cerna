@@ -1,8 +1,5 @@
 import 'server-only'
 
-import { createSupabaseAdminClient } from '@/lib/supabase/admin'
-import { insertIntegrationLogAdmin } from '@/lib/db/integration-logs-admin'
-
 function normalizeError(err: unknown) {
   if (err instanceof Error) {
     const anyErr = err as Error & { code?: unknown; status?: unknown; cause?: unknown }
@@ -58,39 +55,18 @@ export async function logIntegrationError(input: {
   const e = normalizeError(input.error)
   const message = `[${input.provider}] ${input.stage}: ${e.message}`
 
-  // 1) Persist an error log row for later debugging.
-  try {
-    await insertIntegrationLogAdmin({
+  // Console-only logging: do NOT persist errors to DB.
+  console.error(
+    message,
+    redactSecrets({
       userId: input.userId,
+      integrationAccountId: input.integrationAccountId ?? null,
       provider: input.provider,
       stage: input.stage,
-      message,
-      integrationAccountId: input.integrationAccountId ?? null,
-      details: redactSecrets({
-        error: e,
-        details: input.details ?? {},
-      }) as Record<string, unknown>,
+      details: input.details ?? {},
+      error: e,
     })
-  } catch (logErr) {
-    console.error('[integration log insert failed]', logErr)
-  }
-
-  // 2) Update the integration account quick status (if available).
-  if (input.integrationAccountId) {
-    try {
-      const admin = createSupabaseAdminClient()
-      await admin
-        .from('integration_accounts')
-        .update({ last_error: message.slice(0, 500) })
-        .eq('id', input.integrationAccountId)
-        .eq('user_id', input.userId)
-    } catch (accountErr) {
-      console.error('[integration account last_error update failed]', accountErr)
-    }
-  }
-
-  // 3) Always log to server console (with minimal, sanitized context).
-  console.error(message, redactSecrets({ provider: input.provider, stage: input.stage, details: input.details ?? {}, error: e }))
+  )
 }
 
 
